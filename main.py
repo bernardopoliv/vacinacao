@@ -1,4 +1,5 @@
-from datetime import datetime
+from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime, timedelta
 from time import sleep
 
 import requests
@@ -6,54 +7,81 @@ from bs4 import BeautifulSoup
 from pdfminer.high_level import extract_text
 from selenium import webdriver
 
-from settings import VAC_PUBLIC_LIST_URL, NAME_LOOKUPS, ROOT_DIR
+import settings
 
 
-def download(date=None):
-    if date is None:
+def download(initial_date: str, days_ahead: int = 1):
+    if initial_date is None:
         # Default: current day
-        date = datetime.today().strftime('%d/%m/%Y')
+        initial_date = datetime.today().strftime('%d/%m/%Y')
 
     browser = webdriver.Firefox()
-    browser.get(VAC_PUBLIC_LIST_URL)
+    browser.get(settings.VAC_PUBLIC_LIST_URL)
     sleep(4)
-    html = browser.page_source
-    soup = BeautifulSoup(html, 'lxml')
 
-    urls = []
-    for i in soup.find(id='boletinsAnteriores').find_all('a'):
-        if date in i.text:
-            url = i['href']
-            urls.append(url)
+    urls = find_urls(browser, initial_date, days_ahead)
+    print(f'Found {len(urls)} lists. Downloading...')
 
-    print(f'Found {len(urls)} lists for {date}. Downloading...')
+    file_names = _download(urls)
+    print('File(s) downloaded successfully!\n')
+    return file_names
 
-    files = []
+
+def _download(urls):
+    filenames = []
+
     for i, url in enumerate(urls, start=1):
-        response = requests.get(url)
-        filename = f'{ROOT_DIR}file_{date.replace("/", "_")}_{i}.pdf'
-        files.append(filename)
+        try:
+            response = requests.get(url['url'])
+        except Exception:
+            continue
+
+        filename = f'{settings.ROOT_DIR}file_{url["date"]}__{i}.pdf'
+        filenames.append(filename)
 
         with open(filename, 'wb') as f:
             f.write(response.content)
-
-    print('File(s) downloaded successfully!\n')
-    return files
+    return filenames
 
 
-def read(filenames: list):
-    print(f'Reading {len(filenames)} files.')
-    for i, f in enumerate(filenames, 1):
-        print(f'Parsing {f.split("/")[-1]}')
-        text = extract_text(f)
-        for name in NAME_LOOKUPS:
-            if name in text:
-                print(f'{f}: {name}\n')
-                break
-        else:
-            print('No results in this file.\n')
+def find_urls(browser, initial_date, days_ahead):
+    urls = []
+    html = browser.page_source
+    soup = BeautifulSoup(html, 'lxml')
+    for i in soup.find(id='boletinsAnteriores').find_all('a'):
+        date_range = [
+            datetime.strptime(initial_date, "%d/%m/%Y") + timedelta(days=x)
+            for x in range(days_ahead)
+        ]
+        for day in date_range:
+            if day.strftime('%d/%m/%Y') in i.text:
+                url = i['href']
+                urls.append({"url": url, "date": day.strftime('%d_%m_%Y')})
+
+    return urls
+
+
+def _read(filename):
+    try:
+        results = extract_text(filename)
+    except Exception:
+        return
+
+    found = []
+    for name in settings.NAME_LOOKUPS:
+        if name in results:
+            found.append(name)
+    print(
+        f'{filename.split("/")[-1]}: '
+        f'{found if found else "No results in this file."}'
+    )
+
+
+def read(filenames):
+    with ProcessPoolExecutor() as pool:
+        pool.map(_read, filenames)
 
 
 if __name__ == '__main__':
-    filenames = download('29/04/2021')
-    read(filenames)
+    filenames = download(settings.INITIAL_DATE, settings.DAYS_AHEAD)
+    read(filenames=filenames)
