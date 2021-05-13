@@ -1,0 +1,6 @@
+venv
+.idea
+*.log
+tmp*
+__pycache__
+.pdf
