@@ -15,17 +15,21 @@ from selenium.webdriver.firefox.options import Options
 
 import settings
 
-parser = argparse.ArgumentParser(description='Look for your name in Ceará vaccination lists.')
-parser.add_argument('-k', '--keep', action='store_true', help='keep downloaded files in files directory.')
+parser = argparse.ArgumentParser(
+    description='Look for your name in Ceará vaccination lists.'
+)
+parser.add_argument(
+    '-k',
+    '--keep',
+    action='store_true',
+    help='keep downloaded files in files directory.',
+)
 
 
 async def perform_request(url):
     print(url)
     loop = asyncio.get_event_loop()
-    try:
-        return loop.run_in_executor(None, requests.get, url)
-    except:
-        return
+    return loop.run_in_executor(None, requests.get, url)
 
 
 def download(initial_date: str, days_ahead: int = 1):
@@ -48,9 +52,7 @@ def download(initial_date: str, days_ahead: int = 1):
 
 async def _download(urls):
     filenames = []
-    futures = await asyncio.gather(*[
-        perform_request(url['url']) for url in urls
-    ])
+    futures = await asyncio.gather(*[perform_request(url['url']) for url in urls])
 
     for coro in asyncio.as_completed(futures):
         response = await coro
@@ -69,24 +71,28 @@ def find_urls(browser, initial_date, days_ahead):
     soup = BeautifulSoup(html, 'lxml')
     for i in soup.find(id='boletinsAnteriores').find_all('a'):
         date_range = [
-            datetime.strptime(initial_date, "%d/%m/%Y") + timedelta(days=x)
+            datetime.strptime(initial_date, '%d/%m/%Y') + timedelta(days=x)
             for x in range(days_ahead)
         ]
         for day in date_range:
+            is_searched_date = day.strftime('%d/%m/%Y') or day.strftime('%d.%m.%Y')
             url = i['href']
-            if day.strftime('%d/%m/%Y') in i.text and 'http' in url:
-                urls.append({"url": url, "date": day.strftime('%d_%m_%Y')})
+            if is_searched_date in i.text:
+                if 'http' in url:
+                    urls.append({'url': url, 'date': day.strftime('%d_%m_%Y')})
+                else:
+                    print(f'ignoring bad url: {url}')
 
     return urls
 
 
 def _read(filename):
     try:
-        results = extract_text(filename)
+        results = extract_text(filename).lower()
     except Exception:
         return
 
-    found = [name for name in settings.NAME_LOOKUPS if name in results]
+    found = [name for name in settings.NAME_LOOKUPS if name.lower() in results]
 
     print(
         f'{filename.split("/")[-1]}: '
