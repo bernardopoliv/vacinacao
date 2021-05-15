@@ -2,18 +2,27 @@ import argparse
 import asyncio
 import glob
 import os
-import random
+import urllib
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
 from time import sleep
+from typing import List
 
+import boto3
 import requests
 from bs4 import BeautifulSoup
 from pdfminer.high_level import extract_text
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-import settings
+from settings import (
+    VAC_PUBLIC_LIST_URL,
+    FILES_DIR,
+    NAME_LOOKUPS,
+    INITIAL_DATE,
+    DAYS_AHEAD,
+    S3_FILES_BUCKET
+)
 
 parser = argparse.ArgumentParser(
     description='Look for your name in Ceará vaccination lists.'
@@ -40,29 +49,39 @@ def download(initial_date: str, days_ahead: int = 1):
     options = Options()
     options.add_argument("--headless")
     browser = webdriver.Firefox(firefox_options=options)
-    browser.get(settings.VAC_PUBLIC_LIST_URL)
+    browser.get(VAC_PUBLIC_LIST_URL)
     sleep(3)
     urls = find_urls(browser, initial_date, days_ahead)
     print(f'Found {len(urls)} lists. Downloading...')
 
-    file_names = asyncio.run(_download(urls))
+    filenames = asyncio.run(_download(urls))
     print('File(s) downloaded successfully!\n')
-    return file_names
+    return filenames
 
 
 async def _download(urls):
-    filenames = []
-    futures = await asyncio.gather(*[perform_request(url['url']) for url in urls])
+    filenames: List[str] = []
+    future_responses = await asyncio.gather(
+        *[perform_request(url['url']) for url in urls]
+    )
 
-    for coro in asyncio.as_completed(futures):
-        response = await coro
-        filename = f'{settings.ROOT_DIR}/files/file__{random.randint(1, 300)}.pdf'
+    for resp in asyncio.as_completed(future_responses):
+        response = await resp
+        filename = urllib.parse.quote(response.url, '')
         filenames.append(filename)
 
+        print(f'Uploading {filename} to S3 bucket')
         with open(filename, 'wb') as f:
             f.write(response.content)
+            upload_to_s3(filename)
 
     return filenames
+
+
+def upload_to_s3(filename):
+    s3 = boto3.client('s3')
+    with open(filename, "rb") as file:
+        s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
 
 
 def find_urls(browser, initial_date, days_ahead):
@@ -92,7 +111,7 @@ def _read(filename):
     except Exception:
         return
 
-    found = [name for name in settings.NAME_LOOKUPS if name.lower() in results]
+    found = [name for name in NAME_LOOKUPS if name.lower() in results]
 
     print(
         f'{filename.split("/")[-1]}: '
@@ -117,8 +136,8 @@ def delete_files(file_directory):
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    filenames = download(settings.INITIAL_DATE, settings.DAYS_AHEAD)
+    filenames = download(INITIAL_DATE, DAYS_AHEAD)
     read(filenames=filenames)
 
     if not args.keep:
-        delete_files(settings.FILES_DIR)
+        delete_files(FILES_DIR)

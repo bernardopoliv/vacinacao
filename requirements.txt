@@ -3,3 +3,4 @@ beautifulsoup4==4.9.3
 selenium==3.141.0
 flake8==3.9.2
 pdfminer.six==20201018
+boto3==1.17.73
