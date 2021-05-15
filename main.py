@@ -1,4 +1,3 @@
-import argparse
 import asyncio
 import glob
 import os
@@ -9,6 +8,7 @@ from time import sleep
 from typing import List
 
 import boto3
+import botocore
 import requests
 from bs4 import BeautifulSoup
 from pdfminer.high_level import extract_text
@@ -17,21 +17,10 @@ from selenium.webdriver.firefox.options import Options
 
 from settings import (
     VAC_PUBLIC_LIST_URL,
-    FILES_DIR,
     NAME_LOOKUPS,
     INITIAL_DATE,
     DAYS_AHEAD,
     S3_FILES_BUCKET
-)
-
-parser = argparse.ArgumentParser(
-    description='Look for your name in Ceará vaccination lists.'
-)
-parser.add_argument(
-    '-k',
-    '--keep',
-    action='store_true',
-    help='keep downloaded files in files directory.',
 )
 
 
@@ -51,12 +40,35 @@ def download(initial_date: str, days_ahead: int = 1):
     browser = webdriver.Firefox(firefox_options=options)
     browser.get(VAC_PUBLIC_LIST_URL)
     sleep(3)
+
     urls = find_urls(browser, initial_date, days_ahead)
     print(f'Found {len(urls)} lists. Downloading...')
 
     filenames = asyncio.run(_download(urls))
-    print('File(s) downloaded successfully!\n')
+    print(f'{len(filenames)} files downloaded successfully!\n')
+
+    filenames = [name for name in filenames if not file_exists_in_s3(name)]
+    print(f'Uploading {len(filenames)} new files to S3 bucket...')
+
+    for name in filenames:
+        upload_to_s3(name)
+
     return filenames
+
+
+def file_exists_in_s3(filename):
+    try:
+        boto3.resource('s3').Object(S3_FILES_BUCKET, filename).load()
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            # The object does not exist.
+            return False
+        else:
+            # Something else has gone wrong.
+            raise
+    else:
+        # The object does exist.
+        return True
 
 
 async def _download(urls):
@@ -68,18 +80,17 @@ async def _download(urls):
     for resp in asyncio.as_completed(future_responses):
         response = await resp
         filename = urllib.parse.quote(response.url, '')
-        filenames.append(filename)
-
-        print(f'Uploading {filename} to S3 bucket')
-        with open(filename, 'wb') as f:
-            f.write(response.content)
-            upload_to_s3(filename)
+        print(f'Downloading: {filename}')
+        with open(filename, 'wb') as file:
+            file.write(response.content)
+            filenames.append(file.name)
 
     return filenames
 
 
 def upload_to_s3(filename):
     s3 = boto3.client('s3')
+    print(f'Uploading {filename} to S3...\n')
     with open(filename, "rb") as file:
         s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
 
@@ -134,10 +145,5 @@ def delete_files(file_directory):
 
 
 if __name__ == '__main__':
-    args = parser.parse_args()
-
     filenames = download(INITIAL_DATE, DAYS_AHEAD)
     read(filenames=filenames)
-
-    if not args.keep:
-        delete_files(FILES_DIR)
