@@ -1,6 +1,4 @@
 import asyncio
-import glob
-import os
 import urllib
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
@@ -133,15 +131,6 @@ def _read(filename):
 def read(filenames):
     with ProcessPoolExecutor() as pool:
         pool.map(_read, filenames)
-
-
-def delete_files(file_directory):
-    files = glob.glob('{}/*'.format(file_directory), recursive=True)
-    for f in files:
-        try:
-            os.remove(f)
-        except OSError as e:
-            print("Error: %s : %s" % (f, e.strerror))
 
 
 if __name__ == '__main__':
