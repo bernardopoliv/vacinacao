@@ -24,6 +24,9 @@ from settings import (
 )
 
 
+s3 = boto3.client('s3')
+
+
 logger = logging.getLogger(__name__)
 setup_logging(logger)
 
@@ -51,10 +54,10 @@ def download(initial_date: str, days_ahead: int = 1):
     filenames = asyncio.run(_download(urls))
     logger.info(f'{len(filenames)} files downloaded successfully!\n')
 
-    filenames = [name for name in filenames if not file_exists_in_s3(name)]
-    logger.info(f'Uploading {len(filenames)} new files to S3 bucket...')
+    filenames_to_upload = [name for name in filenames if not file_exists_in_s3(name)]
 
-    for name in filenames:
+    logger.info(f'Uploading {len(filenames_to_upload)} new files to S3 bucket...')
+    for name in filenames_to_upload:
         upload_to_s3(name)
 
     return filenames
@@ -93,10 +96,10 @@ async def _download(urls):
 
 
 def upload_to_s3(filename):
-    s3 = boto3.client('s3')
     logger.info(f'Uploading {filename} to S3...')
     with open(filename, "rb") as file:
         s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
+    logger.info(f"Finished uploading {filename} to S3.")
 
 
 def find_urls(browser, initial_date, days_ahead):
@@ -120,17 +123,43 @@ def find_urls(browser, initial_date, days_ahead):
     return urls
 
 
+def upload_results(results_filename, results: str) -> None:
+    logger.info(f"Results file '{results_filename}'.")
+
+    with open(results_filename, "w+") as results_file:
+        results_file.write(results)
+
+    logger.info("Wrote results file.")
+    upload_to_s3(results_filename)
+
+
+def pull_from_s3(key):
+    s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
+    response = s3_file.get()
+    return response['Body'].read()
+
+
+def match_text(results):
+    logger.info("Searching for name in results...")
+    return [name for name in NAME_LOOKUPS if name.lower() in results]
+
+
 def _read(filename):
-    logger.info(f"Starting text extraction on '{filename}'...")
-    try:
+    base_filename = filename.split(".")[0]
+    results_filename = base_filename + "_results.txt"
+    is_result_in_s3 = file_exists_in_s3(results_filename)
+
+    if is_result_in_s3:
+        results = pull_from_s3(results_filename)
+        print(type(results))
+    else:
+        logger.info(f"Starting text extraction on '{filename}'...")
         raw_results = extract_text(filename)
         results = raw_results.lower()
-    except Exception:
-        return
+        logger.info("Uploading results file...")
+        upload_results(results_filename, results)
 
-    logger.info("Searching for name in results...")
-    found = [name for name in NAME_LOOKUPS if name.lower() in results]
-
+    found = match_text(results)
     logger.info(
         f'{filename.split("/")[-1]}: '
         f'{found if found else "No results in this file."}'
@@ -145,4 +174,6 @@ def read(filenames):
 if __name__ == '__main__':
     logger.info("Starting...")
     filenames = download(INITIAL_DATE, DAYS_AHEAD)
+    logger.info("Reading...")
     read(filenames=filenames)
+    logger.info("Finished.")
