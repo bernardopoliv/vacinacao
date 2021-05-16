@@ -1,5 +1,6 @@
 import asyncio
 import urllib
+import logging
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timedelta
 from time import sleep
@@ -22,8 +23,17 @@ from settings import (
 )
 
 
+logger = logging.getLogger(__name__)
+logger.propagate = False
+logger.setLevel(logging.DEBUG)
+stream_log = logging.StreamHandler()
+stream_log.setLevel(logging.DEBUG)
+stream_log.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(stream_log)
+
+
 async def perform_request(url):
-    print(url)
+    logger.info(url)
     loop = asyncio.get_event_loop()
     return loop.run_in_executor(None, requests.get, url)
 
@@ -40,13 +50,13 @@ def download(initial_date: str, days_ahead: int = 1):
     sleep(3)
 
     urls = find_urls(browser, initial_date, days_ahead)
-    print(f'Found {len(urls)} lists. Downloading...')
+    logger.info(f'Found {len(urls)} lists. Downloading...')
 
     filenames = asyncio.run(_download(urls))
-    print(f'{len(filenames)} files downloaded successfully!\n')
+    logger.info(f'{len(filenames)} files downloaded successfully!\n')
 
     filenames = [name for name in filenames if not file_exists_in_s3(name)]
-    print(f'Uploading {len(filenames)} new files to S3 bucket...')
+    logger.info(f'Uploading {len(filenames)} new files to S3 bucket...')
 
     for name in filenames:
         upload_to_s3(name)
@@ -77,8 +87,8 @@ async def _download(urls):
 
     for resp in asyncio.as_completed(future_responses):
         response = await resp
-        filename = urllib.parse.quote(response.url, '')
-        print(f'Downloading: {filename}')
+        filename = urllib.parse.quote(response.url.split("/")[-1], '')
+        logger.info(f'Downloading: {filename}')
         with open(filename, 'wb') as file:
             file.write(response.content)
             filenames.append(file.name)
@@ -88,7 +98,7 @@ async def _download(urls):
 
 def upload_to_s3(filename):
     s3 = boto3.client('s3')
-    print(f'Uploading {filename} to S3...\n')
+    logger.info(f'Uploading {filename} to S3...')
     with open(filename, "rb") as file:
         s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
 
@@ -109,20 +119,23 @@ def find_urls(browser, initial_date, days_ahead):
                 if 'http' in url:
                     urls.append({'url': url, 'date': day.strftime('%d_%m_%Y')})
                 else:
-                    print(f'ignoring bad url: {url}')
+                    logger.info(f'ignoring bad url: {url}')
 
     return urls
 
 
 def _read(filename):
+    logger.info(f"Starting text extraction on '{filename}'...")
     try:
-        results = extract_text(filename).lower()
+        raw_results = extract_text(filename)
+        results = raw_results.lower()
     except Exception:
         return
 
+    logger.info("Searching for name in results...")
     found = [name for name in NAME_LOOKUPS if name.lower() in results]
 
-    print(
+    logger.info(
         f'{filename.split("/")[-1]}: '
         f'{found if found else "No results in this file."}'
     )
@@ -134,5 +147,6 @@ def read(filenames):
 
 
 if __name__ == '__main__':
+    logger.info("Starting...")
     filenames = download(INITIAL_DATE, DAYS_AHEAD)
     read(filenames=filenames)

@@ -3,4 +3,5 @@ venv
 *.log
 tmp*
 __pycache__
-.pdf
+*.pdf
+.vscode
