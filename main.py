@@ -41,7 +41,7 @@ def download(initial_date: str, days_ahead: int = 1):
 
     options = Options()
     options.add_argument("--headless")
-    browser = webdriver.Firefox(firefox_options=options)
+    browser = webdriver.Firefox(options=options)
     browser.get(VAC_PUBLIC_LIST_URL)
     sleep(3)
 

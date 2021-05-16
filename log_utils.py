@@ -1,5 +1,6 @@
 import logging
 
+
 def setup_logging(logger):
     logger.propagate = False
     logger.setLevel(logging.DEBUG)
