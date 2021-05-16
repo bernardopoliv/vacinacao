@@ -14,6 +14,7 @@ from pdfminer.high_level import extract_text
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+from log_utils import setup_logging
 from settings import (
     VAC_PUBLIC_LIST_URL,
     NAME_LOOKUPS,
@@ -24,12 +25,7 @@ from settings import (
 
 
 logger = logging.getLogger(__name__)
-logger.propagate = False
-logger.setLevel(logging.DEBUG)
-stream_log = logging.StreamHandler()
-stream_log.setLevel(logging.DEBUG)
-stream_log.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(stream_log)
+setup_logging(logger)
 
 
 async def perform_request(url):
