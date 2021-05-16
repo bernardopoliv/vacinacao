@@ -28,7 +28,7 @@ async def perform_request(url):
     return loop.run_in_executor(None, requests.get, url)
 
 
-def download(initial_date: str, days_ahead: int = 1):
+def download(initial_date: str, days_ahead: int = 1, existing_files: list = None):
     if initial_date is None:
         # Default: current day
         initial_date = datetime.today().strftime('%d/%m/%Y')
@@ -42,10 +42,8 @@ def download(initial_date: str, days_ahead: int = 1):
     urls = find_urls(browser, initial_date, days_ahead)
     print(f'Found {len(urls)} lists. Downloading...')
 
-    filenames = asyncio.run(_download(urls))
+    filenames = asyncio.run(_download(urls, existing_files))
     print(f'{len(filenames)} files downloaded successfully!\n')
-
-    filenames = [name for name in filenames if not file_exists_in_s3(name)]
     print(f'Uploading {len(filenames)} new files to S3 bucket...')
 
     for name in filenames:
@@ -54,22 +52,7 @@ def download(initial_date: str, days_ahead: int = 1):
     return filenames
 
 
-def file_exists_in_s3(filename):
-    try:
-        boto3.resource('s3').Object(S3_FILES_BUCKET, filename).load()
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "404":
-            # The object does not exist.
-            return False
-        else:
-            # Something else has gone wrong.
-            raise
-    else:
-        # The object does exist.
-        return True
-
-
-async def _download(urls):
+async def _download(urls, existing_files):
     filenames: List[str] = []
     future_responses = await asyncio.gather(
         *[perform_request(url['url']) for url in urls]
@@ -78,10 +61,12 @@ async def _download(urls):
     for resp in asyncio.as_completed(future_responses):
         response = await resp
         filename = urllib.parse.quote(response.url, '')
-        print(f'Downloading: {filename}')
-        with open(filename, 'wb') as file:
-            file.write(response.content)
-            filenames.append(file.name)
+
+        if filename not in existing_files:
+            print(f'Downloading: {filename}')
+            with open(filename, 'wb') as file:
+                file.write(response.content)
+                filenames.append(file.name)
 
     return filenames
 
@@ -134,5 +119,6 @@ def read(filenames):
 
 
 if __name__ == '__main__':
-    filenames = download(INITIAL_DATE, DAYS_AHEAD)
+    existing_files = [f.key for f in boto3.resource('s3').Bucket(S3_FILES_BUCKET).objects.all()]
+    filenames = download(INITIAL_DATE, DAYS_AHEAD, existing_files)
     read(filenames=filenames)
