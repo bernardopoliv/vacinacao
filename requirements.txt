@@ -4,3 +4,5 @@ selenium==3.141.0
 flake8==3.9.2
 pdfminer.six==20201018
 boto3==1.17.73
+lxml==4.6.3
+geckodriver-autoinstaller==0.1.0
