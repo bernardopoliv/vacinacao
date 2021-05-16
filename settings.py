@@ -13,7 +13,7 @@ DAYS_AHEAD = 1
 
 
 # Cloud settings
-S3_FILES_BUCKET = 'vacinacao-covid-ceara-2'
+S3_FILES_BUCKET = 'vacinacao-covid-ceara'
 
 # Downloads geckodriver and puts it in $PATH
 geckodriver_autoinstaller.install()
