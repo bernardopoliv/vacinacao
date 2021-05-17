@@ -1,3 +1,5 @@
+from typing import List
+
 import boto3
 import botocore
 
@@ -35,3 +37,10 @@ def pull(key: str) -> bytes:
     s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
     response = s3_file.get()
     return response['Body'].read()
+
+
+def get_existing_files(bucket_name) -> List[str]:
+    return [
+        f.key for f
+        in boto3.resource('s3').Bucket(bucket_name).objects.all()
+    ]
