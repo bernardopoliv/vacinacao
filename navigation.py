@@ -31,11 +31,10 @@ def __find_urls(html_content, initial_date, days_ahead):
     urls = []
     html = html_content
     soup = BeautifulSoup(html, 'lxml')
+    initial_date = datetime.strptime(initial_date, '%d/%m/%Y')
+    date_range = [initial_date + timedelta(days=x) for x in range(days_ahead)]
+
     for i in soup.find(id='boletinsAnteriores').find_all('a'):
-        date_range = [
-            datetime.strptime(initial_date, '%d/%m/%Y') + timedelta(days=x)
-            for x in range(days_ahead)
-        ]
         for day in date_range:
             is_searched_date = day.strftime('%d/%m/%Y') or day.strftime('%d.%m.%Y')
             url = i['href']
