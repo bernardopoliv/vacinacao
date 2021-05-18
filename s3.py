@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 
 import boto3
@@ -5,7 +6,6 @@ import botocore
 
 from log_utils import setup_logging
 from settings import S3_FILES_BUCKET
-
 
 logger = setup_logging(__name__)
 s3 = boto3.client("s3")
@@ -34,6 +34,7 @@ def file_exists(filename: str) -> bool:
 
 
 def pull(key: str) -> bytes:
+    logger.info(f'Pulling file: {key}')
     s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
     response = s3_file.get()
     return response['Body'].read()
@@ -44,3 +45,10 @@ def get_existing_files(bucket_name) -> List[str]:
         f.key for f
         in boto3.resource('s3').Bucket(bucket_name).objects.all()
     ]
+
+
+async def async_pull(key):
+    logger.info(f'Async pulling file: {key}')
+    s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(None, s3_file.get)

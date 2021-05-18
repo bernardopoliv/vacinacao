@@ -1,7 +1,9 @@
 import asyncio
 import urllib
 from concurrent.futures import ProcessPoolExecutor
+from typing import List
 
+import boto3
 import requests
 from pdfminer.high_level import extract_text
 
@@ -10,9 +12,9 @@ from log_utils import setup_logging
 from navigation import get_urls_for_date_range
 from settings import (
     NAME_LOOKUPS,
+    S3_FILES_BUCKET,
     INITIAL_DATE,
-    DAYS_AHEAD,
-    S3_FILES_BUCKET
+    DAYS_AHEAD
 )
 
 logger = setup_logging(__name__)
@@ -32,15 +34,15 @@ def download(initial_date: str, days_ahead: int = 1, black_list: list = None):
     urls = get_urls_for_date_range(initial_date, days_ahead)
     logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
 
-    filenames = [filename_from_url(url) for url in urls]
     to_download = [url for url in urls if filename_from_url(url) not in black_list]
-    filenames_to_upload = asyncio.run(_download(to_download, black_list))
+    logger.info(f'Found {len(to_download)} new lists. Downloading...')
 
+    filenames_to_upload = asyncio.run(_download(to_download, black_list))
     logger.info(f'Uploading {len(filenames_to_upload)} new files to S3 bucket...')
     for name in filenames_to_upload:
         s3.upload(name)
 
-    return filenames
+    return filenames_to_upload
 
 
 async def _download(urls, black_list):
@@ -61,13 +63,13 @@ async def _download(urls, black_list):
     return filenames
 
 
-def write_and_upload_results(results_filename, results: str) -> None:
+def upload_result(results_filename: str, results: str) -> None:
     logger.info(f"Results file '{results_filename}'.")
 
     with open(results_filename, "w+") as results_file:
         results_file.write(results)
 
-    logger.info("Wrote results file.")
+    logger.info("Uploaded results file.")
     s3.upload(results_filename)
 
 
@@ -76,40 +78,77 @@ def match_text(results):
     return [name for name in NAME_LOOKUPS if name.lower() in results]
 
 
-def _read(filename):
-    base_filename = filename.split(".")[0]
-    results_filename = base_filename + "_results.txt"
-    is_result_in_s3 = s3.file_exists(results_filename)
-
-    if is_result_in_s3:
-        logger.info(f"Result already in S3: '{results_filename}'...")
-        results = str(s3.pull(results_filename))
-    else:
-        logger.info(f"Starting text extraction on '{filename}'...")
-        raw_results = extract_text(filename)
-        results = raw_results.lower()
-        logger.info("Uploading results file...")
-        write_and_upload_results(results_filename, results)
-
-    found = match_text(results)
-    logger.info(
-        f'{filename.split("/")[-1]}: '
-        f'{found if found else "No results in this file."}'
+async def _read(s3_keys):
+    future_results = await asyncio.gather(
+        *[s3.async_pull(key) for key in s3_keys]
     )
 
+    results = []
+    for r in asyncio.as_completed(future_results):
+        result = await r
+        results.append(
+            (result['Body'].read())
+        )
+    return results
 
-def read(filenames):
+
+def find_text(filenames):
     with ProcessPoolExecutor() as pool:
         pool.map(_read, filenames)
+
+
+def read(existing_files):
+    existing_results = [f for f in existing_files if f.endswith('_results.txt')]
+
+    results = asyncio.run(_read(existing_results))
+
+    for result in results:
+        found = match_text(str(result))
+        logger.info(
+            # TODO: Add the file name to this log.
+            # TODO: We need to identify which thread went with which file.
+            f'{found if found else "No results in this file."}'
+        )
+
+
+def extract_result(filename):
+    logger.info(f"Starting text extraction on '{filename}'...")
+    boto3.client('s3').download_file(S3_FILES_BUCKET, filename, filename)
+    with open(filename, 'rb') as f:
+        raw_result = extract_text(f)
+    return raw_result.lower()
+
+
+def generate_results(existing_files: List[str]):
+    missing_results = [
+        f for f
+        in existing_files
+        if f.replace('.pdf', '_results.txt') not in existing_files
+    ]
+    logger.info(f'Processing {len(missing_results)} new pdfs. Generating results...')
+
+    for filename in missing_results:
+        try:
+            # Result is the PDF content represented as string
+            result: str = extract_result(filename)
+        except Exception as e:
+            logger.exception(e)
+        else:
+            logger.info("Uploading results file...")
+            upload_result(filename.replace('.pdf', "_results.txt"), result)
+            existing_files.append(filename)
 
 
 if __name__ == '__main__':
     logger.info("Downloading...")
     # Get list of file names that are in the bucket (S3) already
     existing_files = s3.get_existing_files(S3_FILES_BUCKET)
-    filenames = download(INITIAL_DATE, DAYS_AHEAD, black_list=existing_files)
+    download(INITIAL_DATE, DAYS_AHEAD, black_list=existing_files)
+
+    logger.info("Generating results...")
+    generate_results(existing_files)
 
     logger.info("Reading...")
-    read(filenames=filenames)
+    read(existing_files)
 
     logger.info("Finished.")
