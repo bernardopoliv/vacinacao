@@ -1,4 +1,5 @@
 import asyncio
+import io
 from typing import List
 
 import boto3
@@ -11,10 +12,15 @@ logger = setup_logging(__name__)
 s3 = boto3.client("s3")
 
 
-def upload(filename: str) -> None:
+def upload(filename: str, file_in_memory=None) -> None:
     logger.info(f'Uploading {filename} to S3...')
-    with open(filename, "rb") as file:
-        s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
+
+    if file_in_memory:
+        s3.upload_fileobj(io.BytesIO(file_in_memory), S3_FILES_BUCKET, filename)
+    else:
+        with open(filename, "rb") as file:
+            s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
+
     logger.info(f"Finished uploading {filename} to S3.")
 
 

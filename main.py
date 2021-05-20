@@ -1,6 +1,5 @@
 import asyncio
 import urllib
-from concurrent.futures import ProcessPoolExecutor
 from typing import List
 
 import boto3
@@ -35,12 +34,14 @@ def download(initial_url: str, existing_files: list = None):
 
     to_download = [url for url in urls if filename_from_url(url) not in existing_files]
     logger.info(f'Found {len(to_download)} new lists. Downloading...')
-    filenames_to_upload = asyncio.run(_download(to_download, existing_files))
-    logger.info(f'Uploading {len(filenames_to_upload)} new files to S3 bucket...')
-    for name in filenames_to_upload:
-        s3.upload(name)
 
-    return filenames_to_upload
+    new_files: tuple = asyncio.run(_download(to_download, existing_files))
+    logger.info(f'Uploading {len(new_files)} new files to S3 bucket...')
+
+    for file in new_files:
+        s3.upload(filename=file[0], file_in_memory=file[1])
+
+    return new_files
 
 
 async def _download(urls, existing_files):
@@ -87,23 +88,16 @@ async def _read(s3_keys):
     return results
 
 
-def find_text(filenames):
-    with ProcessPoolExecutor() as pool:
-        pool.map(_read, filenames)
-
-
 def read(existing_files):
     existing_results = [f for f in existing_files if f.endswith('_results.txt')]
-
-    results = asyncio.run(_read(existing_results))
+    results = {result_key: s3.pull(result_key) for result_key in existing_results}
 
     for result in results:
         found = match_text(str(result))
-        logger.info(
-            # TODO: Add the file name to this log.
-            # TODO: We need to identify which thread went with which file.
-            f'{found if found else "No results in this file."}'
-        )
+        if found:
+            logger.info(
+                f'{result}: {found if found else "No results in this file."}'
+            )
 
 
 def extract_result(filename):
