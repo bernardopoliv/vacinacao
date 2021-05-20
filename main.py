@@ -9,12 +9,11 @@ from pdfminer.high_level import extract_text
 
 import s3
 from log_utils import setup_logging
-from navigation import get_urls_for_date_range
+from navigation import get_urls_for_files
 from settings import (
     NAME_LOOKUPS,
     S3_FILES_BUCKET,
-    INITIAL_DATE,
-    DAYS_AHEAD
+    VAC_PUBLIC_LIST_URL
 )
 
 logger = setup_logging(__name__)
@@ -30,14 +29,13 @@ def filename_from_url(url):
     return urllib.parse.quote(url['url'].split("/")[-1], '')
 
 
-def download(initial_date: str, days_ahead: int = 1, black_list: list = None):
-    urls = get_urls_for_date_range(initial_date, days_ahead)
+def download(initial_url: str, existing_files: list = None):
+    urls = get_urls_for_files(initial_url)
     logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
 
-    to_download = [url for url in urls if filename_from_url(url) not in black_list]
+    to_download = [url for url in urls if filename_from_url(url) not in existing_files]
     logger.info(f'Found {len(to_download)} new lists. Downloading...')
-
-    filenames_to_upload = asyncio.run(_download(to_download, black_list))
+    filenames_to_upload = asyncio.run(_download(to_download, existing_files))
     logger.info(f'Uploading {len(filenames_to_upload)} new files to S3 bucket...')
     for name in filenames_to_upload:
         s3.upload(name)
@@ -45,7 +43,7 @@ def download(initial_date: str, days_ahead: int = 1, black_list: list = None):
     return filenames_to_upload
 
 
-async def _download(urls, black_list):
+async def _download(urls, existing_files):
     filenames = []
     future_responses = await asyncio.gather(
         *[perform_request(url['url']) for url in urls]
@@ -54,11 +52,9 @@ async def _download(urls, black_list):
     for resp in asyncio.as_completed(future_responses):
         response = await resp
         filename = urllib.parse.quote(response.url.split("/")[-1], '')
-        if filename not in black_list:
+        if filename not in existing_files:
             logger.info(f'Downloading: {filename}')
-            with open(filename, 'wb') as file:
-                file.write(response.content)
-                filenames.append(file.name)
+            filenames.append((filename, response.content))
 
     return filenames
 
@@ -74,7 +70,6 @@ def upload_result(results_filename: str, results: str) -> None:
 
 
 def match_text(results):
-    logger.info("Searching for name in results...")
     return [name for name in NAME_LOOKUPS if name.lower() in results]
 
 
@@ -140,10 +135,10 @@ def generate_results(existing_files: List[str]):
 
 
 if __name__ == '__main__':
-    logger.info("Downloading...")
+    logger.info('Starting...')
     # Get list of file names that are in the bucket (S3) already
     existing_files = s3.get_existing_files(S3_FILES_BUCKET)
-    download(INITIAL_DATE, DAYS_AHEAD, black_list=existing_files)
+    download(VAC_PUBLIC_LIST_URL, existing_files)
 
     logger.info("Generating results...")
     generate_results(existing_files)
