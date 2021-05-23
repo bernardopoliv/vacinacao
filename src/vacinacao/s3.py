@@ -5,8 +5,8 @@ from typing import List
 import boto3
 import botocore
 
-from log_utils import setup_logging
-from settings import S3_FILES_BUCKET
+from vacinacao.log_utils import setup_logging
+from vacinacao.settings import S3_FILES_BUCKET
 
 logger = setup_logging(__name__)
 s3 = boto3.client("s3")
