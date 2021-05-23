@@ -43,7 +43,7 @@ def pull(key: str) -> bytes:
     logger.info(f'Pulling file: {key}')
     s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
     response = s3_file.get()
-    content = str(response['Body'].read())
+    content = response['Body'].read()
     logger.info(f"Got content for file {key}")
     return content
 

@@ -6,15 +6,10 @@ import boto3
 import requests
 from pdfminer.high_level import extract_text
 
-from vacinacao import s3
+from vacinacao import s3, settings, indexer
 from vacinacao.log_utils import setup_logging
 from vacinacao.navigation import get_file_urls
-from vacinacao.settings import (
-    NAME_LOOKUPS,
-    S3_FILES_BUCKET,
-    VAC_PUBLIC_LIST_URL,
-    PULL_RESULTS_ASYNC
-)
+
 
 logger = setup_logging(__name__)
 
@@ -72,7 +67,7 @@ def upload_result(results_filename: str, results: str) -> None:
 
 
 def match_text(result_text):
-    return [name for name in NAME_LOOKUPS if name.lower() in result_text]
+    return [name for name in settings.NAME_LOOKUPS if name.lower() in result_text]
 
 
 async def _read(s3_keys):
@@ -90,34 +85,50 @@ async def _read(s3_keys):
     return results
 
 
-def read():
-    logger.info("Started `read` method.")
-    existing_results = [
-        f for f in s3.get_existing_files(S3_FILES_BUCKET) if f.endswith('_results.txt')
+def fetch_file_names(endswith):
+    return [
+        f for f in s3.get_existing_files(settings.S3_FILES_BUCKET) if f.endswith(endswith)
     ]
 
-    if PULL_RESULTS_ASYNC:
-        logger.info("Pulling existing results file async.")
-        results = asyncio.run(_read(existing_results))
+
+def pull_files(keys: List[str]) -> dict:
+    if settings.PULL_RESULTS_ASYNC:
+        logger.info("Pulling files async.")
+        results = asyncio.run(_read(keys))
     else:
-        logger.info("Pulling existing results file synchronously.")
-        results = {result_key: s3.pull(result_key) for result_key in existing_results}
+        logger.info("Pulling files synchronously.")
+        results = {result_key: s3.pull(result_key) for result_key in keys}
+
+    return results
+
+
+def read():
+    logger.info("Started `read` method.")
+
+    if settings.USE_INDEX:
+        in_memory_files = indexer.pull_index()
+    else:
+        existing_results = fetch_file_names("_results.txt")
+        logger.info("Got results s3 keys.")
+        in_memory_files = pull_files(existing_results)
+
+    logger.info("Pulled results files into memory.")
 
     found_list = []
-    for result, content in results.items():
+    for result, content in in_memory_files.items():
         found = match_text(str(content))
         if found:
             found_list.append({"names": found, "file_key": result})
-            logger.info(
-                f'{result}: {found if found else "No results in this file."}'
-            )
+        logger.info(
+            f'{result}: {found if found else "No results in this file."}'
+        )
 
     return found_list
 
 
 def extract_result(filename):
     logger.info(f"Starting text extraction on '{filename}'...")
-    boto3.client('s3').download_file(S3_FILES_BUCKET, filename, filename)
+    boto3.client('s3').download_file(settings.S3_FILES_BUCKET, filename, filename)
     with open(filename, 'rb') as f:
         raw_result = extract_text(f)
     return raw_result.lower()
@@ -146,7 +157,7 @@ def generate_results(existing_files: List[str]):
 if __name__ == '__main__':
     logger.info('Starting...')
     # Get list of file names that are in the bucket (S3) already
-    existing_files = s3.get_existing_files(S3_FILES_BUCKET)
+    existing_files = s3.get_existing_files(settings.S3_FILES_BUCKET)
     download(existing_files)
 
     logger.info("Generating results...")
