@@ -66,8 +66,9 @@ def upload_result(results_filename: str, results: str) -> None:
     s3.upload(results_filename)
 
 
-def match_text(result_text):
-    return [name for name in settings.NAME_LOOKUPS if name.lower() in result_text]
+def match_text(result_text, searched_name=None):
+    names = [searched_name] if searched_name else settings.NAME_LOOKUPS
+    return [name for name in names if name.lower() in result_text]
 
 
 async def _read(s3_keys):
@@ -97,16 +98,17 @@ def pull_files(keys: List[str]) -> dict:
         results = asyncio.run(_read(keys))
     else:
         logger.info("Pulling files synchronously.")
-        results = {result_key: s3.pull(result_key) for result_key in keys}
+        results = {result_key: str(s3.pull(result_key)) for result_key in keys}
 
     return results
 
 
-def read():
+def read(searched_name):
     logger.info("Started `read` method.")
 
     if settings.USE_INDEX:
         in_memory_files = indexer.pull_index()
+        logger.info("Got index into memory.")
     else:
         existing_results = fetch_file_names("_results.txt")
         logger.info("Got results s3 keys.")
@@ -116,7 +118,7 @@ def read():
 
     found_list = []
     for result, content in in_memory_files.items():
-        found = match_text(str(content))
+        found = match_text(str(content), searched_name)
         if found:
             found_list.append({"names": found, "file_key": result})
         logger.info(

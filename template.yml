@@ -13,13 +13,18 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.3.2
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.6.0
       Events:
-        Callback:
+        GetSearch:
           Type: Api
           Properties:
             Path: /search
             Method: get
+        PostSearch:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: post
     Metadata:
       DockerTag: vacinacaofunction:vacinacao-img
       DockerContext: .
