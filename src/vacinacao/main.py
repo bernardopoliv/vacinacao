@@ -77,27 +77,31 @@ def match_text(result_text):
 
 async def _read(s3_keys):
     future_results = await asyncio.gather(
-        *[s3.async_pull(key) for key in s3_keys]
+        *[asyncio.ensure_future(s3.bound_async_pull(key)) for key in s3_keys]
     )
 
     results = []
     for r in asyncio.as_completed(future_results):
         result = await r
         results.append(
-            (result['Body'].read())
+            str(result['Body'].read())
         )
+        logger.info(f"Downloaded and appended content for result.")
     return results
 
 
 def read():
+    logger.info("Started `read` method.")
     existing_results = [
         f for f in s3.get_existing_files(S3_FILES_BUCKET) if f.endswith('_results.txt')
     ]
 
-    if not PULL_RESULTS_ASYNC:
-        results = {result_key: s3.pull(result_key) for result_key in existing_results}
-    else:
+    if PULL_RESULTS_ASYNC:
+        logger.info("Pulling existing results file async.")
         results = asyncio.run(_read(existing_results))
+    else:
+        logger.info("Pulling existing results file synchronously.")
+        results = {result_key: s3.pull(result_key) for result_key in existing_results}
 
     found_list = []
     for result, content in results.items():

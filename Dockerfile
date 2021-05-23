@@ -5,7 +5,6 @@ RUN pip install -r /tmp/requirements.txt
 
 COPY src /var/task
 RUN pip install -e /var/task
-RUN chmod -R 444 /var/task
 
 
 CMD ["handler.handler"]

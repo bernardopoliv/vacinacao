@@ -43,10 +43,13 @@ def pull(key: str) -> bytes:
     logger.info(f'Pulling file: {key}')
     s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
     response = s3_file.get()
-    return response['Body'].read()
+    content = str(response['Body'].read())
+    logger.info(f"Got content for file {key}")
+    return content
 
 
 def get_existing_files(bucket_name) -> List[str]:
+    logger.info("Looking for existing files in the S3 bucket...")
     return [
         f.key for f
         in boto3.resource('s3').Bucket(bucket_name).objects.all()
