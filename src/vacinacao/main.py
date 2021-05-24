@@ -86,12 +86,6 @@ async def _read(s3_keys):
     return results
 
 
-def fetch_file_names(endswith):
-    return [
-        f for f in s3.get_existing_files(settings.S3_FILES_BUCKET) if f.endswith(endswith)
-    ]
-
-
 def pull_files(keys: List[str]) -> dict:
     if settings.PULL_RESULTS_ASYNC:
         logger.info("Pulling files async.")
@@ -110,7 +104,7 @@ def read(searched_name):
         in_memory_files = indexer.pull_index()
         logger.info("Got index into memory.")
     else:
-        existing_results = fetch_file_names("_results.txt")
+        existing_results = s3.fetch_file_names("_results.txt")
         logger.info("Got results s3 keys.")
         in_memory_files = pull_files(existing_results)
 

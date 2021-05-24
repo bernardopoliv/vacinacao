@@ -26,6 +26,7 @@ def upload(filename: str, file_in_memory=None) -> None:
 
 def file_exists(filename: str) -> bool:
     try:
+        logger.debug(f"Looking for '{filename}' in S3...")
         boto3.resource('s3').Object(S3_FILES_BUCKET, filename).load()
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == "404":
@@ -36,6 +37,7 @@ def file_exists(filename: str) -> bool:
             raise
     else:
         # The object does exist.
+        logger.debug(f"'{filename}' exists.")
         return True
 
 
@@ -61,3 +63,9 @@ async def async_pull(key):
     s3_file = boto3.resource('s3').Object(S3_FILES_BUCKET, key)
     loop = asyncio.get_event_loop()
     return loop.run_in_executor(None, s3_file.get)
+
+
+def fetch_file_names(endswith):
+    return [
+        f for f in get_existing_files(S3_FILES_BUCKET) if f.endswith(endswith)
+    ]

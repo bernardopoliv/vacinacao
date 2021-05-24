@@ -13,15 +13,19 @@ class IndexUnavailable(Exception):
     pass
 
 
-def compile_index():
-    from vacinacao.main import fetch_file_names, pull_files
-    existing_results = fetch_file_names("_results.txt")
+def compile_index() -> None:
+    from vacinacao.main import pull_files
+    existing_results = s3.fetch_file_names("_results.txt")
     logger.info("Got results s3 keys.")
 
-    in_memory_files = pull_files(existing_results)
-    logger.info("Pulled results files into memory.")
+    current_index = pull_index()
+    missing_in_index = set(existing_results).difference(current_index)
 
-    index_json = json.dumps(in_memory_files)
+    new_index = pull_files(missing_in_index)
+    logger.info("Pulled results files into memory.")
+    new_index.update(current_index)
+
+    index_json = json.dumps(new_index)
     logger.info("Dumped index into JSON string.")
 
     index_filename = _get_todays_index()
@@ -30,7 +34,7 @@ def compile_index():
     logger.info(f"Successfully wrote index file '{index_filename}'.")
 
 
-def pull_index():
+def pull_index() -> dict:
     index_filename = _get_todays_index()
     logger.info(f"Looking for index '{index_filename}'.")
     if s3.file_exists(index_filename):
