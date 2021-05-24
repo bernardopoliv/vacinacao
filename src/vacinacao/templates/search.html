@@ -15,7 +15,8 @@
   <div class="container">
     <div class="row">
       <div class="column column-100">
-        <h2>Buscador de Nomes - Lista Pública de Fortaleza</h2>
+        <h2>Vacinação COVID - Buscador de Nomes</h2>
+        <h3>Lista Pública de Fortaleza</h3>
         <p>Fonte: <a target="_blank"
             href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
         </p>
@@ -24,10 +25,10 @@
 
     <div class="row">
       <div class="column column-100">
-        <form style="text-align: center;" action="{{ BASE_URL }}search" method="post">
+        <form action="{{ BASE_URL }}search" method="post">
           <fieldset>
             <label for="name">Nome para buscar</label>
-            <input type="text" placeholder="Fulano da Silva" name="name" id="name">
+            <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
             <input class="button-primary" type="submit" value="Buscar">
           </fieldset>
         </form>
