@@ -6,7 +6,7 @@ import boto3
 import botocore
 
 from vacinacao.log_utils import setup_logging
-from vacinacao.settings import S3_FILES_BUCKET
+from vacinacao.settings import S3_FILES_BUCKET, PULL_RESULTS_ASYNC
 
 logger = setup_logging(__name__)
 s3 = boto3.client("s3")
@@ -69,3 +69,29 @@ def fetch_file_names(endswith):
     return [
         f for f in get_existing_files(S3_FILES_BUCKET) if f.endswith(endswith)
     ]
+
+
+async def _read(s3_keys):
+    future_results = await asyncio.gather(
+        *[asyncio.ensure_future(s3.bound_async_pull(key)) for key in s3_keys]
+    )
+
+    results = []
+    for r in asyncio.as_completed(future_results):
+        result = await r
+        results.append(
+            str(result['Body'].read())
+        )
+        logger.info("Downloaded and appended content for result.")
+    return results
+
+
+def pull_files(keys: List[str]) -> dict:
+    if PULL_RESULTS_ASYNC:
+        logger.info("Pulling files async.")
+        results = asyncio.run(_read(keys))
+    else:
+        logger.info("Pulling files synchronously.")
+        results = {result_key: str(s3.pull(result_key)) for result_key in keys}
+
+    return results

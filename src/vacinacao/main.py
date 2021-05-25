@@ -71,32 +71,6 @@ def match_text(result_text, searched_name=None):
     return [name for name in names if name.lower() in result_text]
 
 
-async def _read(s3_keys):
-    future_results = await asyncio.gather(
-        *[asyncio.ensure_future(s3.bound_async_pull(key)) for key in s3_keys]
-    )
-
-    results = []
-    for r in asyncio.as_completed(future_results):
-        result = await r
-        results.append(
-            str(result['Body'].read())
-        )
-        logger.info(f"Downloaded and appended content for result.")
-    return results
-
-
-def pull_files(keys: List[str]) -> dict:
-    if settings.PULL_RESULTS_ASYNC:
-        logger.info("Pulling files async.")
-        results = asyncio.run(_read(keys))
-    else:
-        logger.info("Pulling files synchronously.")
-        results = {result_key: str(s3.pull(result_key)) for result_key in keys}
-
-    return results
-
-
 def read(searched_name):
     logger.info("Started `read` method.")
 
@@ -106,7 +80,7 @@ def read(searched_name):
     else:
         existing_results = s3.fetch_file_names("_results.txt")
         logger.info("Got results s3 keys.")
-        in_memory_files = pull_files(existing_results)
+        in_memory_files = s3.pull_files(existing_results)
 
     logger.info("Pulled results files into memory.")
 

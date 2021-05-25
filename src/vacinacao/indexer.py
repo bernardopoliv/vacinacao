@@ -14,14 +14,17 @@ class IndexUnavailable(Exception):
 
 
 def compile_index() -> None:
-    from vacinacao.main import pull_files
+    """
+    Checks for result files in S3 and compare against the index.
+    Adds those to the index and update in S3.
+    """
     existing_results = s3.fetch_file_names("_results.txt")
     logger.info("Got results s3 keys.")
 
     current_index = pull_index()
     missing_in_index = set(existing_results).difference(current_index)
 
-    new_index = pull_files(missing_in_index)
+    new_index = s3.pull_files(missing_in_index)
     logger.info("Pulled results files into memory.")
     new_index.update(current_index)
 
