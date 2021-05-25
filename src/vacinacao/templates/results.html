@@ -1,0 +1,50 @@
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <!-- CSS Reset -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+  <!-- Milligram CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+</head>
+
+<body>
+<div class="container">
+  <div class="row">
+    <div class="column column-100">
+      <h2>Vacinação COVID - Buscador de Nomes</h2>
+      <h3>Lista Pública de Fortaleza</h3>
+      <p>Fonte: <a target="_blank"
+                   href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  {% if not found %}
+    <h5>Não foram encontrados resultados.</h5>
+  {% else %}
+  <h4 class="bold">Resultados</h4>
+  <table>
+    <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Arquivo</th>
+    </tr>
+    </thead>
+    <tbody>
+      {% for result in found %}
+      <tr>
+        <td>{{result.names}}</td>
+        <td>{{result.file_key}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+</body>
+
+</html>

@@ -68,7 +68,9 @@ def upload_result(results_filename: str, results: str) -> None:
 
 def match_text(result_text, searched_name=None):
     names = [searched_name] if searched_name else settings.NAME_LOOKUPS
-    return [name for name in names if name.lower() in result_text]
+    names_found = [name for name in names if name.lower() in result_text]
+    # Make user friendly to show in the result page
+    return names_found[0] if len(names_found) == 1 else names_found
 
 
 def read(searched_name):

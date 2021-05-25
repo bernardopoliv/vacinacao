@@ -1,6 +1,6 @@
 import json
 
-from flask import request
+from flask import request, render_template
 from flask_lambda import FlaskLambda
 
 from vacinacao.main import read
@@ -14,11 +14,7 @@ def search():
     if request.method == "POST":
         searched_name = request.form["name"]
         found = read(searched_name)
-        return (
-            json.dumps({"found": found}),
-            200,
-            {'Content-Type': 'application/json'}
-        )
+        return render_template('results.html', found=found)
 
     html_template = open(f"{settings.ROOT_DIR}/templates/search.html").read()
     html_content = html_template.replace(r"{{ BASE_URL }}", settings.BASE_URL)
