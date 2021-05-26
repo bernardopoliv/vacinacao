@@ -92,6 +92,6 @@ def pull_files(keys: List[str]) -> dict:
         results = asyncio.run(_read(keys))
     else:
         logger.info("Pulling files synchronously.")
-        results = {result_key: str(s3.pull(result_key)) for result_key in keys}
+        results = {result_key: str(pull(result_key)) for result_key in keys}
 
     return results
