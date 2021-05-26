@@ -12,29 +12,45 @@
 </head>
 
 <body>
-  <div class="container">
-    <div class="row">
-      <div class="column column-100">
-        <h2>Vacinação COVID - Buscador de Nomes</h2>
-        <h3>Lista Pública de Fortaleza</h3>
-        <p>Fonte: <a target="_blank"
-            href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
-        </p>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="column column-100">
-        <form action="{{ BASE_URL }}search" method="post">
-          <fieldset>
-            <label for="name">Nome para buscar</label>
-            <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
-            <input class="button-primary" type="submit" value="Buscar">
-          </fieldset>
-        </form>
-      </div>
+<div class="container">
+  <div class="row">
+    <div class="column column-100">
+      <h2>Vacinação COVID - Buscador de Nomes</h2>
+      <h3>Lista Pública de Fortaleza</h3>
+      <p>Fonte: <a target="_blank"
+                   href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
+      </p>
     </div>
   </div>
+
+  <div class="row" id="search-container">
+    <div class="column column-100">
+      <form action="{{ BASE_URL }}search" method="post">
+        <fieldset>
+          <label for="name">Nome para buscar</label>
+          <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
+          <h6 style="color: red" id="no-input-warning" hidden>Você precisa digitar um nome para buscar.</h6>
+          <input class="button-primary" type="button" id="search" value="Buscar">
+        </fieldset>
+      </form>
+    </div>
+  </div>
+
+  <table id="results-table" style="display: none">
+    <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Arquivo</th>
+    </tr>
+    </thead>
+    <tbody id="results">
+    </tbody>
+  </table>
+
+  <script type="text/javascript" src="../static/client.js"></script>
+  <script type="text/javascript" src="../static/results.js"></script>
+
+</div>
 </body>
 
 </html>
