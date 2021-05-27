@@ -23,15 +23,21 @@ function removeResults(elementId) {
   }
 }
 
+function sanitize(name) {
+  name = name.replace(/[0-9]/g, '')
+  name = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  name = name.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
+  return name.trim()
+}
+
 document.getElementById('search').addEventListener('click', function () {
   const noInputWarning = document.getElementById('no-input-warning')
   const nameInput = document.getElementById('name')
-  const name = nameInput.value
-  if (!name.trim()) {
+  let name = sanitize(nameInput.value)  // Get rid of accents, numbers and symbols
+  if (!name) {
     noInputWarning.style.display = ''  // Visible
   } else {
     noInputWarning.style.display = 'none'  // Invisible
-
     postData('/search', {name: nameInput.value})
       .then(data => {
         document.getElementById('results-table').style.display = ''
