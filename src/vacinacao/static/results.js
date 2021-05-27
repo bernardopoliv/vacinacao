@@ -30,19 +30,34 @@ function sanitize(name) {
   return name.trim()
 }
 
+function toggleDisplays(results) {
+  if (results.length === 0) {
+    // Show message for 'No results found', hide result table
+    document.getElementById('not-found').style.display = ''
+    document.getElementById('results-table').style.display = 'none'
+  } else {
+    // Show result table, hide 'No results found' message
+    document.getElementById('not-found').style.display = 'none'
+    document.getElementById('results-table').style.display = ''
+  }
+}
+
+
 document.getElementById('search').addEventListener('click', function () {
   const noInputWarning = document.getElementById('no-input-warning')
   const nameInput = document.getElementById('name')
   let name = sanitize(nameInput.value)  // Get rid of accents, numbers and symbols
   if (!name) {
-    noInputWarning.style.display = ''  // Visible
+    noInputWarning.style.display = ''
   } else {
-    noInputWarning.style.display = 'none'  // Invisible
+    noInputWarning.style.display = 'none'
     postData('/search', {name: nameInput.value})
-      .then(data => {
-        document.getElementById('results-table').style.display = ''
-        removeResults('results')  // Remove to display a new one
-        createRows(data);
-      });
+      .then(results => {
+          noInputWarning.style.display = 'none'
+          removeResults('results')  // Remove to display a new one
+          toggleDisplays(results)
+          createRows(results);
+        }
+      )
   }
 })
