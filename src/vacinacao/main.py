@@ -35,16 +35,17 @@ def download(existing_files: list = None):
     ]
     logger.info(f'Found {len(to_download)} new lists. Downloading...')
 
-    new_files: List[tuple] = asyncio.run(_download(to_download, existing_files))
+    new_files: List[dict] = asyncio.run(_download(to_download, existing_files))
     logger.info(f'Uploading {len(new_files)} new files to S3 bucket...')
 
     for file in new_files:
-        s3.upload(filename=file[0], file_in_memory=file[1])
+        s3.upload(filename=file['filename'], file_in_memory=file['file_content'])
+
     return new_files
 
 
-async def _download(urls, existing_files):
-    filenames = []
+async def _download(urls: List[str], existing_files: List[str]) -> dict:
+    new_files = []
     future_responses = await asyncio.gather(
         *[perform_request(url['url']) for url in urls]
     )
@@ -55,9 +56,13 @@ async def _download(urls, existing_files):
         filename = response.__dict__['url'].split("/")[-1].lower()
         if filename not in existing_files:
             logger.info(f'Downloading: {filename}')
-            filenames.append((filename, response.content))
+            new_files.append({
+                'url': response.url,
+                'filename': filename,
+                'content': response.content
+            })
 
-    return filenames
+    return new_files
 
 
 def upload_result(results_filename: str, results: str) -> None:
@@ -111,6 +116,7 @@ def generate_results(existing_files: List[str]):
     ]
     logger.info(f'Processing {len(missing_results)} new pdfs. Generating results...')
 
+    new_results = []
     for filename in missing_results:
         try:
             # Result is the PDF content represented as string
@@ -120,4 +126,6 @@ def generate_results(existing_files: List[str]):
         else:
             logger.info("Uploading results file...")
             upload_result(filename.replace('.pdf', "_results.txt"), result)
-            existing_files.append(filename)
+            new_results.append(filename)
+
+    return new_results

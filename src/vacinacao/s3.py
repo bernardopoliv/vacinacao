@@ -93,5 +93,4 @@ def pull_files(keys: List[str]) -> dict:
     else:
         logger.info("Pulling files synchronously.")
         results = {result_key: str(pull(result_key)) for result_key in keys}
-
     return results
