@@ -13,12 +13,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.7.2
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.8.5
       Events:
         GetSearch:
           Type: Api
           Properties:
-            Path: /search
+            Path: /
             Method: get
         PostSearch:
           Type: Api
@@ -33,4 +33,4 @@ Resources:
 Outputs:
   VacinacaoFunction:
     Description: "API Gateway endpoint URL for Prod stage"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/search/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

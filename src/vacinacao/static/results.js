@@ -42,22 +42,29 @@ function toggleDisplays(results) {
   }
 }
 
+function submitName(event) {
+  event.preventDefault();
 
-document.getElementById('search').addEventListener('click', function () {
-  const noInputWarning = document.getElementById('no-input-warning')
-  const nameInput = document.getElementById('name')
-  let name = sanitize(nameInput.value)  // Get rid of accents, numbers and symbols
+  const noInputWarning = document.getElementById('no-input-warning');
+  const nameInput = document.getElementById('name');
+
+  let name = sanitize(nameInput.value);  // Get rid of accents, numbers and symbols
   if (!name) {
-    noInputWarning.style.display = ''
+    noInputWarning.style.display = '';
+    return;
   } else {
-    noInputWarning.style.display = 'none'
-    postData('/search', {name: nameInput.value})
-      .then(results => {
-          noInputWarning.style.display = 'none'
-          removeResults('results')  // Remove to display a new one
-          toggleDisplays(results)
-          createRows(results);
-        }
-      )
+    noInputWarning.style.display = 'none';
   }
-})
+
+  postData('/search', {name: nameInput.value})
+    .then(results => {
+        noInputWarning.style.display = 'none';
+        removeResults('results');  // Remove to display a new one
+        toggleDisplays(results);
+        createRows(results);
+      }
+    )
+}
+
+document.getElementById('search').addEventListener('click', submitName)
+document.getElementById('name-form').addEventListener('submit', submitName)
