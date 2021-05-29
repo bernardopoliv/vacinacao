@@ -6,5 +6,6 @@ RUN pip install -r /tmp/requirements.txt
 
 COPY src /var/task
 RUN pip install -e /var/task
+COPY tests/ /tests/
 
 CMD ["handler.handler"]

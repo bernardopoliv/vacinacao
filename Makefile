@@ -1,3 +1,6 @@
+up:
+	docker-compose up -d
+
 build-and-push:
 	docker-compose build
 	docker tag vacinacao-img:latest 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.2
@@ -14,3 +17,6 @@ webapp:
 
 reindex:
 	python src/vacinacao/service_layer/indexer.py
+
+e2e-tests: up
+	docker-compose run --rm --no-deps --entrypoint=pytest vacinacao /tests/test_e2e.py
