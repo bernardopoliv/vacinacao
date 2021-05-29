@@ -31,13 +31,19 @@ def filename_from_url(url):
     return urllib.parse.quote(url['url'].split("/")[-1], '')
 
 
+def is_url_in_index(url):
+    index = pull_index()
+    indexed_urls = [entry["url"] for entry in index]
+    return url in indexed_urls
+
+
 def download_from_prefeitura(existing_files: list = None) -> List[dict]:
     urls = navigation.get_file_urls()
     logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
 
     to_download = [
         url for url
-        in urls if filename_from_url(url).lower()
+        in urls if not is_url_in_index(url)
         not in [f.lower() for f in existing_files]
     ]
     logger.info(f'Found {len(to_download)} new lists. Downloading...')

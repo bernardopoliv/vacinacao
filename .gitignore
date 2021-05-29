@@ -7,4 +7,3 @@ __pycache__
 .vscode
 *_results.txt
 *.egg-info
-index*.json
