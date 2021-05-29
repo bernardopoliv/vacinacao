@@ -16,5 +16,3 @@ BASE_URL = (
 S3_FILES_BUCKET = 'vacinacao-covid-ceara-2'
 
 PULL_RESULTS_ASYNC = False
-
-USE_INDEX = True

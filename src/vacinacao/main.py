@@ -80,15 +80,8 @@ def match_text(result_text, searched_name=None):
 def read(searched_name):
     logger.info("Started `read` method.")
 
-    if settings.USE_INDEX:
-        in_memory_files = indexer.pull_index()
-        logger.info("Got index into memory.")
-    else:
-        existing_results = s3.fetch_file_names("_results.txt")
-        logger.info("Got results s3 keys.")
-        in_memory_files = s3.pull_files(existing_results)
-
-    logger.info("Pulled results files into memory.")
+    in_memory_files = indexer.pull_index()
+    logger.info("Got index into memory.")
 
     found_list = []
     for result, content in in_memory_files.items():
@@ -128,18 +121,3 @@ def generate_results(existing_files: List[str]):
             logger.info("Uploading results file...")
             upload_result(filename.replace('.pdf', "_results.txt"), result)
             existing_files.append(filename)
-
-
-if __name__ == '__main__':
-    logger.info('Starting...')
-    # Get list of file names that are in the bucket (S3) already
-    existing_files = s3.get_existing_files(settings.S3_FILES_BUCKET)
-    download(existing_files)
-
-    logger.info("Generating results...")
-    generate_results(existing_files)
-
-    logger.info("Reading...")
-    read()
-
-    logger.info("Finished.")
