@@ -1,11 +1,16 @@
 import json
 import gzip
-import sys
+import asyncio
+import urllib
 from datetime import date
 from typing import List
 
+import requests
+from pdfminer.high_level import extract_text
+
 from vacinacao import s3, settings
 from vacinacao.log_utils import setup_logging
+from vacinacao.navigation import get_file_urls
 
 
 logger = setup_logging(__name__)
@@ -15,12 +20,62 @@ class IndexUnavailable(Exception):
     pass
 
 
+async def perform_request(url):
+    logger.info(url)
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(None, requests.get, url)
+
+
+def filename_from_url(url):
+    return urllib.parse.quote(url['url'].split("/")[-1], '')
+
+
+def download_from_prefeitura(existing_files: list = None) -> List[dict]:
+    urls = get_file_urls()[:3]
+    logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
+
+    to_download = [
+        url for url
+        in urls if filename_from_url(url).lower()
+        not in [f.lower() for f in existing_files]
+    ]
+    logger.info(f'Found {len(to_download)} new lists. Downloading...')
+
+    new_files: List[dict] = asyncio.run(_download(to_download))
+    logger.info(f'Uploading {len(new_files)} new files to S3 bucket...')
+
+    for file in new_files:
+        s3.upload(filename=file['filename'], file_in_memory=file['content'])
+
+    return new_files
+
+
+async def _download(urls: List[str]) -> List[dict]:
+    new_files = []
+    future_responses = await asyncio.gather(
+        *[perform_request(url['url']) for url in urls]
+    )
+
+    for resp in asyncio.as_completed(future_responses):
+        response = await resp
+        # URL passed with the async call for this thread
+        filename = response.__dict__['url'].split("/")[-1].lower()
+        logger.info(f'Downloading: {filename}')
+        new_files.append({
+            'url': response.url,
+            'filename': filename,
+            'content': response.content
+        })
+
+    return new_files
+
+
 def compile_index(new_pdfs) -> None:
     """
     Checks for result files in S3 and compare against the index.
     Adds those to the index and update in S3.
     """
-    existing_results = s3.fetch_file_names("_results.txt")
+    existing_results = s3.fetch_file_names("_results.txt")[:3]
     logger.info("Got results s3 keys.")
 
     try:
@@ -34,9 +89,9 @@ def compile_index(new_pdfs) -> None:
     logger.info("Pulled results files into memory.")
     new_index.update(current_index)
 
-    for pdf_name, pdf_meta in new_pdfs.items():
+    for pdf_meta in new_pdfs:
         for result_name, result_content in new_index.items():
-            if result_name == pdf_meta['filename'].replace('_result.txt', '.pdf'):
+            if result_name.replace('_results.txt', '.pdf').lower() == pdf_meta['filename'].lower():
                 new_index[result_name] = {
                     'url': pdf_meta['url'],
                     'content': result_content,
@@ -64,15 +119,54 @@ def pull_index() -> dict:
 
 
 def _get_todays_index():
-    return f"index_{date.today().isoformat()}.json.gzip"
+    return f"temp_index_{date.today().isoformat()}.json.gzip"
+
+
+def extract_result(filename):
+    logger.info(f"Starting text extraction on '{filename}'...")
+    boto3.client('s3').download_file(settings.S3_FILES_BUCKET, filename, "/tmp/" + filename)
+    with open("/tmp/" + filename, 'rb') as f:
+        raw_result = extract_text(f)
+    return raw_result.lower()
+
+
+def _upload_result(results_filename: str, results: str) -> None:
+    logger.info(f"Results file '{results_filename}'.")
+
+    with open("/tmp/" + results_filename, "w+") as results_file:
+        results_file.write(results)
+
+    logger.info("Uploaded results file.")
+    s3.upload(results_filename)
+
+
+def generate_results(existing_files: List[str]):
+    missing_results = [
+        f for f
+        in existing_files
+        if f.replace('.pdf', '_results.txt') not in existing_files
+    ]
+    logger.info(f'Processing {len(missing_results)} new pdfs. Generating results...')
+
+    new_results = []
+    for filename in missing_results:
+        try:
+            # Result is the PDF content represented as string
+            result: str = extract_result(filename)
+        except Exception as e:
+            logger.exception("Could not extract result.")
+        else:
+            logger.info("Uploading results file...")
+            _upload_result(filename.replace('.pdf', "_results.txt"), result)
+            new_results.append(filename)
+
+    return new_results
 
 
 def download_and_reindex():
-    from vacinacao.main import download, generate_results
-
     logger.info('Starting reindex...')
     existing_files = s3.get_existing_files(settings.S3_FILES_BUCKET)
-    new_pdfs: List[dict] = download(existing_files)
+    new_pdfs: List[dict] = download_from_prefeitura(existing_files)
 
     logger.info("Generating results...")
     new_results: List[str] = generate_results(existing_files)
@@ -82,3 +176,7 @@ def download_and_reindex():
     compile_index(new_pdfs)
 
     logger.info("Finished reindex.")
+
+
+if __name__ == "__main__":
+    download_and_reindex()
