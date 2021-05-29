@@ -28,7 +28,11 @@ def download(existing_files: list = None):
     urls = get_file_urls()
     logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
 
-    to_download = [url for url in urls if filename_from_url(url) not in existing_files]
+    to_download = [
+        url for url
+        in urls if filename_from_url(url).lower()
+        not in [f.lower() for f in existing_files]
+    ]
     logger.info(f'Found {len(to_download)} new lists. Downloading...')
 
     new_files: List[tuple] = asyncio.run(_download(to_download, existing_files))
@@ -36,7 +40,6 @@ def download(existing_files: list = None):
 
     for file in new_files:
         s3.upload(filename=file[0], file_in_memory=file[1])
-
     return new_files
 
 
@@ -48,7 +51,8 @@ async def _download(urls, existing_files):
 
     for resp in asyncio.as_completed(future_responses):
         response = await resp
-        filename = urllib.parse.quote(response.url.split("/")[-1], '')
+        # URL passed with the async call for this thread
+        filename = response.__dict__['url'].split("/")[-1].lower()
         if filename not in existing_files:
             logger.info(f'Downloading: {filename}')
             filenames.append((filename, response.content))
