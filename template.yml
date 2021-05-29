@@ -13,7 +13,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${GIT_COMMIT_REF}
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.10.3
       Events:
         GetSearch:
           Type: Api
@@ -32,14 +32,14 @@ Resources:
   VacinacaoFunctionIndexer:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 120
+      MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${GIT_COMMIT_REF}
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.10.3
       ImageConfig:
         Command:
-          - "/var/task/vacinacao/indexer.py"
-        EntryPoint:
-          - "python"
-        WorkingDirectory: ""
+          - "handler.reindex_handler"
+      Role: arn:aws:iam::244978745220:role/vacinacao-app-VacinacaoFunctionRole-QWM4AIGVKOM2
       Events:
         Reindex:
           Type: Schedule

@@ -58,7 +58,7 @@ def _get_todays_index():
     return f"index_{date.today().isoformat()}.json.gzip"
 
 
-if __name__ == "__main__":
+def download_and_reindex():
     from vacinacao.main import download, generate_results
 
     logger.info('Starting reindex...')
@@ -72,5 +72,3 @@ if __name__ == "__main__":
     compile_index()
 
     logger.info("Finished reindex.")
-
-    sys.exit(0)  # Makes lambda consider this a success

@@ -18,7 +18,7 @@ def upload(filename: str, file_in_memory=None) -> None:
     if file_in_memory:
         s3.upload_fileobj(io.BytesIO(file_in_memory), S3_FILES_BUCKET, filename)
     else:
-        with open(filename, "rb") as file:
+        with open("/tmp/" + filename, "rb") as file:
             s3.upload_fileobj(file, S3_FILES_BUCKET, filename)
 
     logger.info(f"Finished uploading {filename} to S3.")

@@ -63,7 +63,7 @@ async def _download(urls, existing_files):
 def upload_result(results_filename: str, results: str) -> None:
     logger.info(f"Results file '{results_filename}'.")
 
-    with open(results_filename, "w+") as results_file:
+    with open("/tmp/" + results_filename, "w+") as results_file:
         results_file.write(results)
 
     logger.info("Uploaded results file.")
@@ -97,8 +97,8 @@ def read(searched_name):
 
 def extract_result(filename):
     logger.info(f"Starting text extraction on '{filename}'...")
-    boto3.client('s3').download_file(settings.S3_FILES_BUCKET, filename, filename)
-    with open(filename, 'rb') as f:
+    boto3.client('s3').download_file(settings.S3_FILES_BUCKET, filename, "/tmp/" + filename)
+    with open("/tmp/" + filename, 'rb') as f:
         raw_result = extract_text(f)
     return raw_result.lower()
 
