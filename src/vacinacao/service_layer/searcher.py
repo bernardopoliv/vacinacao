@@ -1,9 +1,6 @@
-from typing import List
-
 from vacinacao import settings
-from vacinacao.service_layer import indexer
 from vacinacao.log_utils import setup_logging
-
+from vacinacao.service_layer import indexer
 
 logger = setup_logging(__name__)
 
@@ -18,16 +15,20 @@ def match_text(result_text, searched_name=None):
 def search_name(searched_name):
     logger.info("Started `read` method.")
 
-    in_memory_files = indexer.pull_index()
+    index = indexer.pull_index()
     logger.info("Got index into memory.")
 
     found_list = []
-    for result, content in in_memory_files.items():
-        found = match_text(str(content), searched_name)
+    for content_hash, file_meta in index.items():
+        found = match_text(str(file_meta['content']), searched_name)
         if found:
-            found_list.append({"names": found, "file_key": result})
+            found_list.append({
+                "names": found,
+                "url": file_meta['url'],
+                "date": file_meta.get('date')}
+            )
         logger.info(
-            f'{result}: {found if found else "No results in this file."}'
+            f'{content_hash}: {found if found else "No results in this file."}'
         )
 
     return found_list
