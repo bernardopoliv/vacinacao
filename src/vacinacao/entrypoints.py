@@ -1,6 +1,6 @@
 import json
 
-from flask import request, render_template
+from flask import request, render_template, Response
 from flask_lambda import FlaskLambda
 
 from vacinacao.main import read
@@ -18,9 +18,16 @@ def home():
 
 @app.route("/search", methods=["POST"])
 def search():
-    return json.dumps(read(
+    found = read(
         json.loads(request.data)["name"]
-    ))
+    )
+    response = Response(
+        json.dumps({"found": found}),
+        headers={"Content-Type": "application/json"}
+    )
+
+    return response
+
 
 if __name__ == '__main__':
     app.run(debug=True)
