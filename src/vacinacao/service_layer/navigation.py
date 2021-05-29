@@ -1,7 +1,3 @@
-from datetime import datetime, timedelta
-from time import sleep
-from typing import List
-
 import requests
 from lxml import etree
 

@@ -25,3 +25,5 @@ Werkzeug==2.0.1
 flask-cors==3.0.10
 pytest  # TODO
 pytest-snapshot  # TODO
+flake8
+black
