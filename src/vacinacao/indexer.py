@@ -1,5 +1,6 @@
 import json
 import gzip
+import sys
 from datetime import date
 
 from vacinacao import s3, settings
@@ -21,7 +22,11 @@ def compile_index() -> None:
     existing_results = s3.fetch_file_names("_results.txt")
     logger.info("Got results s3 keys.")
 
-    current_index = pull_index()
+    try:
+        current_index = pull_index()
+    except IndexUnavailable:
+        current_index = {}
+
     missing_in_index = set(existing_results).difference(current_index)
 
     new_index = s3.pull_files(missing_in_index)
@@ -65,3 +70,7 @@ if __name__ == "__main__":
 
     logger.info("Compiling index...")
     compile_index()
+
+    logger.info("Finished reindex.")
+
+    sys.exit(0)  # Makes lambda consider this a success
