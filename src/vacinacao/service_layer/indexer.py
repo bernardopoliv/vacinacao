@@ -5,12 +5,13 @@ import urllib
 from datetime import date
 from typing import List
 
+import boto3
 import requests
 from pdfminer.high_level import extract_text
 
-from vacinacao import s3, settings
+from vacinacao import settings
 from vacinacao.log_utils import setup_logging
-from vacinacao.navigation import get_file_urls
+from vacinacao.service_layer import s3, navigation
 
 
 logger = setup_logging(__name__)
@@ -31,7 +32,7 @@ def filename_from_url(url):
 
 
 def download_from_prefeitura(existing_files: list = None) -> List[dict]:
-    urls = get_file_urls()[:3]
+    urls = navigation.get_file_urls()
     logger.info(f'Found {len(urls)} lists. Checking existence and downloading...')
 
     to_download = [
@@ -75,7 +76,7 @@ def compile_index(new_pdfs) -> None:
     Checks for result files in S3 and compare against the index.
     Adds those to the index and update in S3.
     """
-    existing_results = s3.fetch_file_names("_results.txt")[:3]
+    existing_results = s3.fetch_file_names("_results.txt")
     logger.info("Got results s3 keys.")
 
     try:

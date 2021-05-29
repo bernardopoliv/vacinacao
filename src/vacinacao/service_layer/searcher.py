@@ -1,6 +1,7 @@
 from typing import List
 
-from vacinacao import settings, indexer
+from vacinacao import settings
+from vacinacao.service_layer import indexer
 from vacinacao.log_utils import setup_logging
 
 

@@ -13,4 +13,4 @@ webapp:
 	python src/vacinacao/entrypoints.py
 
 reindex:
-	python src/vacinacao/indexer.py
+	python src/vacinacao/service_layer/indexer.py
