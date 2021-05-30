@@ -1,32 +1,33 @@
 import json
 
-from flask import request, render_template, Response
+from flask import request, Response
 from flask_lambda import FlaskLambda
 
-from vacinacao.main import read
+from vacinacao.service_layer.searcher import search_name
 from vacinacao import settings
+from flask_cors import CORS
 
 app = FlaskLambda(__name__)
+CORS(app)
 
 
 @app.route("/", methods=["GET"])
 def home():
     html_template = open(f"{settings.ROOT_DIR}/templates/search.html").read()
     html_content = html_template.replace(r"{{ BASE_URL }}", settings.BASE_URL)
-    return (html_content, 200)
+    return html_content, 200
 
 
 @app.route("/search", methods=["POST"])
 def search():
-    found = read(
+    found = search_name(
         json.loads(request.data)["name"]
     )
-    response = Response(
-        json.dumps({"found": found}),
+
+    return Response(
+        json.dumps(found),
         headers={"Content-Type": "application/json"}
     )
-
-    return response
 
 
 if __name__ == '__main__':

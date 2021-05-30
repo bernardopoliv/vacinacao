@@ -42,7 +42,7 @@
     <thead>
     <tr>
       <th>Nome</th>
-      <th>Arquivo</th>
+      <th>URL</th>
     </tr>
     </thead>
     <tbody id="results">
@@ -73,10 +73,10 @@
       }
     }
 
-    function createRows(response) {
+    function createRows(results) {
       const resultsBody = document.getElementById('results')
-      response.forEach(function (result) {
-        var row = document.createElement("tr");
+      results.forEach(function (result) {
+        let row = document.createElement("tr");
         createColumns(result, row)
         resultsBody.appendChild(row)
       })

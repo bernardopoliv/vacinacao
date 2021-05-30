@@ -13,6 +13,6 @@ BASE_URL = (
 )
 
 # Cloud settings
-S3_FILES_BUCKET = 'vacinacao-covid-ceara-2'
+S3_FILES_BUCKET = 'vacinacao-covid-ceara-3'
 
 PULL_RESULTS_ASYNC = False

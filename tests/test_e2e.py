@@ -19,5 +19,5 @@ def test_searching_a_name(client, snapshot):
     response = client.post("/search", json={"name": "Jose"}, headers={"Content-Type": "application/json"})
 
     # The results contain the PDF's name.
-    expected_fragment = {'names': 'Jose', 'file_key': '290521PROFESSORESD1_results.txt'}
+    expected_fragment = {'names': 'Jose', 'file_key': '290521professoresd1_results.txt'}
     assert expected_fragment in response.json["found"]
