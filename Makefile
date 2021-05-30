@@ -23,3 +23,4 @@ e2e-tests: up
 
 lint: up
 	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao
+	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check .

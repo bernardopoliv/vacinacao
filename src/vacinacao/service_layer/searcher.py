@@ -20,18 +20,14 @@ def search_name(searched_name):
 
     found_list = []
     for content_hash, file_meta in index.items():
-        if not file_meta.get('content'):
-            logger.warning(f'File {content_hash} without content.')
+        if not file_meta.get("content"):
+            logger.warning(f"File {content_hash} without content.")
             continue
-        found = match_text(str(file_meta['content']), searched_name)
+        found = match_text(str(file_meta["content"]), searched_name)
         if found:
-            found_list.append({
-                "names": found,
-                "url": file_meta['url'],
-                "date": file_meta.get('date')}
+            found_list.append(
+                {"names": found, "url": file_meta["url"], "date": file_meta.get("date")}
             )
-        logger.info(
-            f'{content_hash}: {found if found else "No results in this file."}'
-        )
+        logger.info(f'{content_hash}: {found if found else "No results in this file."}')
 
     return found_list
