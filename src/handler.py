@@ -8,6 +8,4 @@ def handler(event, context):
 
 def reindex_handler(event, context):
     download_and_reindex()
-    return {
-        'statusCode': 200
-    }
+    return {"statusCode": 200}

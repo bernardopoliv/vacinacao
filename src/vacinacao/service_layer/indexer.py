@@ -1,4 +1,3 @@
-import hashlib
 import io
 import json
 import gzip
@@ -28,14 +27,14 @@ async def perform_request(url):
 
 
 def filename_from_url(url):
-    return urllib.parse.quote(url['url'].split("/")[-1], '')
+    return urllib.parse.quote(url["url"].split("/")[-1], "")
 
 
 def is_url_in_index(url, index):
     if not index:
         return []
-    indexed_urls = [entry.get("url", '').lower() for entry in index.values()]
-    return url['url'].lower() in indexed_urls
+    indexed_urls = [entry.get("url", "").lower() for entry in index.values()]
+    return url["url"].lower() in indexed_urls
 
 
 def download_from_prefeitura(to_download: List[str]):
@@ -44,35 +43,34 @@ def download_from_prefeitura(to_download: List[str]):
 
     for content_hash, file_meta in new_entries.items():
         s3.upload(
-            filename=file_meta['pdf_file_key'],
-            file_in_memory=file_meta['content']
+            filename=file_meta["pdf_file_key"], file_in_memory=file_meta["content"]
         )
         index[content_hash] = {
-            'url': file_meta['url'],
-            'pdf_file_key': file_meta['pdf_file_key'],
+            "url": file_meta["url"],
+            "pdf_file_key": file_meta["pdf_file_key"],
         }
 
     if new_entries:
-        logger.info(f'Adding {len(new_entries)} new files to the index...')
+        logger.info(f"Adding {len(new_entries)} new files to the index...")
         dump_and_upload_index(index)
 
 
 async def _download(urls: List[str]) -> dict:
     new_files = {}
     future_responses = await asyncio.gather(
-        *[perform_request(url['url']) for url in urls]
+        *[perform_request(url["url"]) for url in urls]
     )
 
     for resp in asyncio.as_completed(future_responses):
         response = await resp
         # URL passed with the async call for this thread
         content_hash = hash_content(response.content)
-        filename = f'{content_hash}.pdf'
-        logger.info(f'Downloading: {content_hash}.pdf')
+        filename = f"{content_hash}.pdf"
+        logger.info(f"Downloading: {content_hash}.pdf")
         new_files[content_hash] = {
-            'url': response.request.url,
-            'content': response.content,
-            'pdf_file_key': filename,
+            "url": response.request.url,
+            "content": response.content,
+            "pdf_file_key": filename,
         }
     return new_files
 
@@ -130,18 +128,20 @@ def upload_result(results_filename: str, results: str) -> None:
 def generate_and_upload_results():
     index = pull_index()
     for content_hash, file_meta in index.items():
-        if file_meta.get('content') and file_meta.get('results_file_key'):
+        if file_meta.get("content") and file_meta.get("results_file_key"):
             continue
-        pdf_filename = file_meta['pdf_file_key']
-        logger.info(f'Generating results for {pdf_filename}')
+        pdf_filename = file_meta["pdf_file_key"]
+        logger.info(f"Generating results for {pdf_filename}")
         pdf_content = s3.pull(pdf_filename)
         result: str = extract_result(pdf_filename, pdf_content)
-        results_file_key = f'{content_hash}_results.txt'
+        results_file_key = f"{content_hash}_results.txt"
         upload_result(results_file_key, result)
-        index[content_hash].update({
-            'content': result,
-            'results_file_key': results_file_key,
-        })
+        index[content_hash].update(
+            {
+                "content": result,
+                "results_file_key": results_file_key,
+            }
+        )
     dump_and_upload_index(index)
 
 
@@ -157,17 +157,13 @@ def get_current_index() -> dict:
 
 
 def download_and_reindex():
-    logger.info('Starting reindex...')
+    logger.info("Starting reindex...")
     current_index: dict = get_current_index()
     urls = navigation.get_file_urls()
 
-    to_download = [
-        url
-        for url in urls
-        if not is_url_in_index(url, current_index)
-    ]
+    to_download = [url for url in urls if not is_url_in_index(url, current_index)]
 
-    logger.info(f'Found {len(to_download)} new lists. Downloading...')
+    logger.info(f"Found {len(to_download)} new lists. Downloading...")
     download_from_prefeitura(to_download)
 
     logger.info("Generating results...")

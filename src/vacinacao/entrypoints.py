@@ -20,15 +20,10 @@ def home():
 
 @app.route("/search", methods=["POST"])
 def search():
-    found = search_name(
-        json.loads(request.data)["name"]
-    )
+    found = search_name(json.loads(request.data)["name"])
 
-    return Response(
-        json.dumps(found),
-        headers={"Content-Type": "application/json"}
-    )
+    return Response(json.dumps(found), headers={"Content-Type": "application/json"})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)

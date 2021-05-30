@@ -1,9 +1,12 @@
 version: "3"
 
 services:
-  api:
+  vacinacao:
     image: vacinacao-img
     build: .
+    volumes:
+      - ./src:/src
+      - ./tests:/tests
     ports:
         - 9000:8080
     environment:
