@@ -25,7 +25,7 @@ def search():
     )
 
     return Response(
-        json.dumps({"found": found}),
+        json.dumps(found),
         headers={"Content-Type": "application/json"}
     )
 

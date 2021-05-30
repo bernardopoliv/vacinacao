@@ -42,7 +42,7 @@
     <thead>
     <tr>
       <th>Nome</th>
-      <th>Arquivo</th>
+      <th>URL</th>
     </tr>
     </thead>
     <tbody id="results">
@@ -127,7 +127,7 @@
             noInputWarning.style.display = 'none';
             removeResults('results');  // Remove to display a new one
             toggleDisplays(results);
-            createRows(results.found);
+            createRows(results);
           }
         )
     }

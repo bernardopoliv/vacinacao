@@ -38,16 +38,23 @@ def is_url_in_index(url, index):
     return url['url'].lower() in indexed_urls
 
 
-def download_from_prefeitura(to_download: List[str]) -> dict:
-    new_files: dict = asyncio.run(_download(to_download))
+def download_from_prefeitura(to_download: List[str]):
+    index = pull_index()
+    new_entries: dict = asyncio.run(_download(to_download))
 
-    logger.info(f'Adding {len(new_files)} new files to the index...')
-    for file_meta in new_files.values():
+    for content_hash, file_meta in new_entries.items():
         s3.upload(
             filename=file_meta['pdf_file_key'],
             file_in_memory=file_meta['content']
         )
-    return new_files
+        index[content_hash] = {
+            'url': file_meta['url'],
+            'pdf_file_key': file_meta['pdf_file_key'],
+        }
+
+    if new_entries:
+        logger.info(f'Adding {len(new_entries)} new files to the index...')
+        dump_and_upload_index(index)
 
 
 async def _download(urls: List[str]) -> dict:
@@ -65,24 +72,17 @@ async def _download(urls: List[str]) -> dict:
         new_files[content_hash] = {
             'url': response.request.url,
             'content': response.content,
-            'pdf_file_key': filename
+            'pdf_file_key': filename,
         }
     return new_files
 
 
-def compile_index(new_entries: dict, current_index: dict) -> None:
+def dump_and_upload_index(new_index: dict) -> None:
     """
     Checks for result files in S3 and compare against the index.
     Adds those to the index and update in S3.
     """
-
-    new_entries = {
-        k: v for k, v
-        in new_entries.items()
-        if k not in current_index
-    }
-
-    new_index = {**new_entries, **current_index}
+    logger.info("Compiling and uploading new index...")
     index_json = json.dumps(new_index)
     logger.info("Dumped index into JSON string.")
 
@@ -111,13 +111,13 @@ def get_index_filename_for_date(index_date: date):
     return f"temp_index_{index_date.isoformat()}.json.gzip"
 
 
-def extract_result(file_entry: dict) -> str:
-    logger.info(f"Starting text extraction on '{file_entry['pdf_file_key']}'...")
-    text_result = extract_text(io.BytesIO(file_entry['content']))
+def extract_result(pdf_file_key: dict, pdf_content: bytes) -> str:
+    logger.info(f"Starting text extraction on '{pdf_file_key}'...")
+    text_result = extract_text(io.BytesIO(pdf_content))
     return text_result.lower()
 
 
-def _upload_result(results_filename: str, results: str) -> None:
+def upload_result(results_filename: str, results: str) -> None:
     logger.info(f"Uploading results file {results_filename}...")
 
     with open("/tmp/" + results_filename, "w+") as results_file:
@@ -127,16 +127,22 @@ def _upload_result(results_filename: str, results: str) -> None:
     s3.upload(results_filename)
 
 
-def generate_results(new_entries: dict):
-    logger.info(f'Processing {len(new_entries)} new pdfs. Generating results...')
-    for content_hash, file_meta in new_entries.items():
-        result: str = extract_result(file_meta)
+def generate_and_upload_results():
+    index = pull_index()
+    for content_hash, file_meta in index.items():
+        if file_meta.get('content') and file_meta.get('results_file_key'):
+            continue
+        pdf_filename = file_meta['pdf_file_key']
+        logger.info(f'Generating results for {pdf_filename}')
+        pdf_content = s3.pull(pdf_filename)
+        result: str = extract_result(pdf_filename, pdf_content)
         results_file_key = f'{content_hash}_results.txt'
-        new_entries[content_hash].update({
+        upload_result(results_file_key, result)
+        index[content_hash].update({
             'content': result,
             'results_file_key': results_file_key,
         })
-        _upload_result(results_file_key, result)
+    dump_and_upload_index(index)
 
 
 def get_current_index() -> dict:
@@ -148,10 +154,6 @@ def get_current_index() -> dict:
         current_index = pull_index(yesterday)
 
     return current_index
-
-
-def get_existing_pdfs(current_index):
-    return [f.get('pdf_file_key') for f in current_index]
 
 
 def download_and_reindex():
@@ -166,13 +168,11 @@ def download_and_reindex():
     ]
 
     logger.info(f'Found {len(to_download)} new lists. Downloading...')
-    new_entries = download_from_prefeitura(to_download)
+    download_from_prefeitura(to_download)
 
     logger.info("Generating results...")
-    generate_results(new_entries)
+    generate_and_upload_results()
 
-    logger.info("Compiling and uploading new index...")
-    compile_index(new_entries, current_index)
     logger.info("Finished reindex.")
 
 

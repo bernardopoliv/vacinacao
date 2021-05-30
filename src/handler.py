@@ -1,5 +1,5 @@
 from vacinacao.entrypoints import app
-from vacinacao.indexer import download_and_reindex
+from vacinacao.service_layer.indexer import download_and_reindex
 
 
 def handler(event, context):

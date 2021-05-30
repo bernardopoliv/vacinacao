@@ -20,6 +20,9 @@ def search_name(searched_name):
 
     found_list = []
     for content_hash, file_meta in index.items():
+        if not file_meta.get('content'):
+            logger.warning(f'File {content_hash} without content.')
+            continue
         found = match_text(str(file_meta['content']), searched_name)
         if found:
             found_list.append({
