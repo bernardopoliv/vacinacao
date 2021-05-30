@@ -24,7 +24,11 @@ def client():
             s3.create_bucket(Bucket=S3_FILES_BUCKET)
 
             index_fixture = bytes(open("/tests/index_fixture.json").read(), "utf8")
-            s3_client.upload_fileobj(io.BytesIO(gzip.compress(index_fixture)), S3_FILES_BUCKET, get_index_filename_for_date(date.today()))
+            s3_client.upload_fileobj(
+                io.BytesIO(gzip.compress(index_fixture)),
+                S3_FILES_BUCKET,
+                get_index_filename_for_date(date.today()),
+            )
             yield client
 
 
@@ -35,8 +39,14 @@ def test_searching_a_name(client, snapshot):
     snapshot.assert_match(response.data, "main_page.html")
 
     # Searches a name
-    response = client.post("/search", json={"name": "Jose"}, headers={"Content-Type": "application/json"})
+    response = client.post(
+        "/search", json={"name": "Jose"}, headers={"Content-Type": "application/json"}
+    )
 
     # The results contain the expected entry.
-    expected_fragment = {'date': None, 'names': 'Jose', 'url': 'https://site-da-prefeitura.com/abc.pdf'}
+    expected_fragment = {
+        "date": None,
+        "names": "Jose",
+        "url": "https://site-da-prefeitura.com/abc.pdf",
+    }
     assert expected_fragment in response.json

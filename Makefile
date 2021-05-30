@@ -24,5 +24,5 @@ e2e-tests: up
 test: up e2e-tests
 
 lint: up
-	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao
-	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check .
+	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao "/src" "/tests"
+	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check "/src" "/tests"
