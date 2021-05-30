@@ -19,8 +19,10 @@ reindex:
 	python src/vacinacao/service_layer/indexer.py
 
 e2e-tests: up
-	docker-compose run --rm --no-deps --entrypoint=pytest vacinacao /tests/test_e2e.py
+	docker-compose run --rm --no-deps --entrypoint=pytest vacinacao /tests/test_e2e.py -vv
+
+test: up e2e-tests
 
 lint: up
-	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao
-	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check .
+	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao "/src" "/tests"
+	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check "/src" "/tests"
