@@ -15,7 +15,7 @@ Resources:
       Timeout: 10
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.2
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4
       Events:
         GetSearch:
           Type: Api
@@ -37,7 +37,7 @@ Resources:
       Timeout: 120
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.2
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4
       ImageConfig:
         Command:
           - "handler.reindex_handler"

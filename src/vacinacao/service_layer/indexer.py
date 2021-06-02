@@ -38,7 +38,7 @@ def is_url_in_index(url, index):
 
 
 def download_from_prefeitura(to_download: List[str]):
-    index = pull_index()
+    index = get_current_index()
     new_entries: dict = asyncio.run(_download(to_download))
 
     for content_hash, file_meta in new_entries.items():
@@ -126,7 +126,7 @@ def upload_result(results_filename: str, results: str) -> None:
 
 
 def generate_and_upload_results():
-    index = pull_index()
+    index = get_current_index()
     for content_hash, file_meta in index.items():
         if file_meta.get("content") and file_meta.get("results_file_key"):
             continue

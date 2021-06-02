@@ -8,4 +8,4 @@ s3_prefix = "vacinacao-app"
 region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-image_repositories = ["VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app"]
+image_repositories = ["VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app", "VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app"]
