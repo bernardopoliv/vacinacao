@@ -11,7 +11,7 @@
   <!-- Milligram CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
 
-  <!-- Bootstrap Table -->
+  <!-- Data Table -->
   <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
   <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 
@@ -35,7 +35,7 @@
         <fieldset>
           <label for="name">Nome para buscar</label>
           <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
-          <h6 style="color: red; display: none" id="no-input-warning">Você precisa digitar um nome para buscar.</h6>
+          <h6 style="color: red; display: none" id="input-warning"></h6>
           <input class="button-primary" type="button" id="search" value="Buscar">
         </fieldset>
       </form>
@@ -87,32 +87,41 @@
           {
             select: 1,
             render: function (data, cell, row) {
-              return data.replace(data, `<a href=${data}>${data}</a>`);
+              // Add hyperlink to the URL cell
+              return data.replace(
+                data, `<a href=${data} target="_blank">${data}</a>`
+              );
             }
           }
         ],
         data: {
-          "headings": ["Nome", "URL","Data"],
+          "headings": ["Nome", "URL", "Data"],
           'data': changeDataStructure(results)
         },
         labels: {
-          placeholder: "Search...",
           noRows: "A busca não retornou resultados.",
-          info: "Showing {start} to {end} of {rows} entries",
         },
       })
     }
 
+    function isValid(name) {
+      const inputWarning = document.getElementById('input-warning')
+      if (!name) {
+        inputWarning.style.display = '';
+        inputWarning.textContent = 'Você precisa digitar um nome para buscar.';
+      } else if (name.split(' ').length <= 1) {
+        inputWarning.style.display = '';
+        inputWarning.textContent = 'Digite o nome completo para buscar.';
+      } else {
+        inputWarning.style.display = 'none'
+        return true
+      }
+    }
     function submitName(event) {
       event.preventDefault();
       const nameInput = document.getElementById('name');
-      const noInputWarning = document.getElementById('no-input-warning');
       let name = sanitize(nameInput.value);  // Get rid of accents, numbers and symbols
-      if (!name) {
-        noInputWarning.style.display = '';
-        return;
-      }
-      noInputWarning.style.display = 'none';
+      if (!isValid(name)) {return}
       postData('{{ BASE_URL }}search', {name: nameInput.value})
         .then(results => {
             createDataTable(results)
