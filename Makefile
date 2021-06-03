@@ -1,16 +1,16 @@
 up:
 	docker-compose up -d --build
 
-build-and-push:
+build-and-push: ecr-login
 	docker-compose build
-	docker tag vacinacao-img:latest 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4
-	docker push 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4
+	docker tag vacinacao-img:latest 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.12.0
+	docker push 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.12.0
 
 ecr-login:
 	aws ecr get-login --no-include-email | sh
 
 deploy:
-	sam deploy --no-confirm-changeset --image-repositories VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4 --image-repositories VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.11.4
+	sam deploy --no-confirm-changeset --image-repositories VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.12.0 --image-repositories VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.12.0
 
 webapp:
 	python src/vacinacao/entrypoints.py
