@@ -9,10 +9,20 @@
 
   <!-- Milligram CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+
+  <style>
+    body {
+      margin: 4em 2em;
+    }
+
+    #main-container {
+      max-width: 600px;
+    }
+  </style>
 </head>
 
 <body>
-<div class="container">
+<div class="container" id="main-container">
   <div class="row">
     <div class="column column-100">
       <h2>Vacinação COVID - Buscador de Nomes</h2>
@@ -20,6 +30,7 @@
       <p>Fonte: <a target="_blank"
                    href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
       </p>
+      <p>Este não é um site oficial da prefeitura! Estamos apenas facilitando a pesquisa nas listas públicas para buscarmos nossos nomes e de familiares.</p>
     </div>
   </div>
 
@@ -66,6 +77,9 @@
 
     function createColumns(result, row) {
       for (let field in result) {
+        if (!result[field]) {
+          continue;
+        }
         let col = document.createElement("td");
         let text = document.createTextNode(result[field])
         col.appendChild(text)
