@@ -14,6 +14,8 @@ deploy:
 
 webapp:
 	python src/vacinacao/entrypoints.py
+	# TODO
+	# docker-compose run --rm --no-deps --entrypoint=python vacinacao "/src/vacinacao/entrypoints.py"
 
 reindex:
 	python src/vacinacao/service_layer/indexer.py
@@ -26,3 +28,6 @@ test: up e2e-tests
 lint: up
 	docker-compose run --rm --no-deps --entrypoint=flake8 vacinacao "/src" "/tests"
 	docker-compose run --rm --no-deps --entrypoint=black vacinacao --check "/src" "/tests"
+
+snapshot:
+	docker-compose run --rm --no-deps --entrypoint=pytest vacinacao /tests/test_e2e.py -vv --snapshot-update

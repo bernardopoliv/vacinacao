@@ -1,5 +1,6 @@
 <html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <head>
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
@@ -9,133 +10,213 @@
 
   <!-- Milligram CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+
+  <style>
+    body {
+      margin: 4em 2em;
+    }
+
+    #main-container {
+      max-width: 600px;
+    }
+
+    .lds-ring {
+      display: inline-block;
+      position: relative;
+      width: 40px;
+      height: 40px;
+    }
+
+    .lds-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border: 8px solid purple;
+      border-radius: 50%;
+      animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: purple transparent transparent transparent;
+    }
+
+    .lds-ring div:nth-child(1) {
+      animation-delay: -0.45s;
+    }
+
+    .lds-ring div:nth-child(2) {
+      animation-delay: -0.3s;
+    }
+
+    .lds-ring div:nth-child(3) {
+      animation-delay: -0.15s;
+    }
+
+    @keyframes lds-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body>
-<div class="container">
-  <div class="row">
-    <div class="column column-100">
-      <h2>Vacinação COVID - Buscador de Nomes</h2>
-      <h3>Lista Pública de Fortaleza</h3>
-      <p>Fonte: <a target="_blank"
-                   href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
-      </p>
+  <div class="container" id="main-container">
+    <div class="row">
+      <div class="column column-100">
+        <h2>Vacinação COVID - Buscador de Nomes</h2>
+        <h3>Lista Pública de Fortaleza</h3>
+        <p>Fonte: <a target="_blank"
+            href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
+        </p>
+        <p>Este não é um site oficial da prefeitura! Estamos apenas facilitando a pesquisa nas listas públicas para
+          buscarmos nossos nomes e de familiares.</p>
+      </div>
     </div>
-  </div>
 
-  <div class="row" id="search-container">
-    <div class="column column-100">
-      <form action="{{ BASE_URL }}search" id="name-form" method="post" onsubmit="submitName">
-        <fieldset>
-          <label for="name">Nome para buscar</label>
-          <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
-          <h6 style="color: red; display: none" id="no-input-warning">Você precisa digitar um nome para buscar.</h6>
-          <input class="button-primary" type="button" id="search" value="Buscar">
-        </fieldset>
-      </form>
+    <div class="row" id="search-container">
+      <div class="column column-100">
+        <form action="{{ BASE_URL }}search" id="name-form" method="post" onsubmit="submitName">
+          <fieldset>
+            <label for="name">Nome para buscar</label>
+            <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
+            <h6 style="color: red; display: none" id="no-input-warning">Você precisa digitar um nome para buscar.</h6>
+            <input class="button-primary" type="button" id="search" value="Buscar">
+          </fieldset>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <h5 id="not-found" style="display: none">Não foram encontrados resultados.</h5>
+    <div id="loader" style="display: none">
+      <div class="lds-ring">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
 
-  <table id="results-table" style="display: none">
-    <thead>
-    <tr>
-      <th>Nome</th>
-      <th>URL</th>
-    </tr>
-    </thead>
-    <tbody id="results">
-    </tbody>
-  </table>
+    <h5 id="not-found" style="display: none">Não foram encontrados resultados.</h5>
 
-  <script type="text/javascript">
-    // TODO: Once we have a pipeline, put this into modules and push to S3
-    async function postData(url = '', data = {}) {
-      const response = await fetch(url, {
-        method: 'POST', // *GET, POST, PUT, DELETE, etc.
-        mode: 'cors', // no-cors, *cors, same-origin
-        credentials: 'same-origin', // include, *same-origin, omit
-        headers: {'Content-Type': 'application/json'},
-        redirect: 'follow', // manual, *follow, error
-        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        body: JSON.stringify(data) // body data type must match "Content-Type" header
-      });
-      return response.json(); // parses JSON response into native JavaScript objects
-    }
+    <table id="results-table" style="display: none">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>URL</th>
+        </tr>
+      </thead>
+      <tbody id="results">
+      </tbody>
+    </table>
 
-    function createColumns(result, row) {
-      for (let field in result) {
-        let col = document.createElement("td");
-        let text = document.createTextNode(result[field])
-        col.appendChild(text)
-        row.appendChild(col)
-      }
-    }
-
-    function createRows(results) {
-      const resultsBody = document.getElementById('results')
-      results.forEach(function (result) {
-        let row = document.createElement("tr");
-        createColumns(result, row)
-        resultsBody.appendChild(row)
-      })
-    }
-
-    function removeResults(elementId) {
-      const results = document.getElementById(elementId);
-      while (results.firstChild) {
-        results.removeChild(results.lastChild);
-      }
-    }
-
-    function sanitize(name) {
-      name = name.replace(/[0-9]/g, '')
-      name = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      name = name.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
-      return name.trim()
-    }
-
-    function toggleDisplays(results) {
-      if (results.length === 0) {
-        // Show message for 'No results found', hide result table
-        document.getElementById('not-found').style.display = ''
-        document.getElementById('results-table').style.display = 'none'
-      } else {
-        // Show result table, hide 'No results found' message
-        document.getElementById('not-found').style.display = 'none'
-        document.getElementById('results-table').style.display = ''
-      }
-    }
-
-    function submitName(event) {
-      event.preventDefault();
-
-      const noInputWarning = document.getElementById('no-input-warning');
-      const nameInput = document.getElementById('name');
-
-      let name = sanitize(nameInput.value);  // Get rid of accents, numbers and symbols
-      if (!name) {
-        noInputWarning.style.display = '';
-        return;
+    <script type="text/javascript">
+      // TODO: Once we have a pipeline, put this into modules and push to S3
+      async function postData(url = '', data = {}) {
+        const response = await fetch(url, {
+          method: 'POST', // *GET, POST, PUT, DELETE, etc.
+          mode: 'cors', // no-cors, *cors, same-origin
+          credentials: 'same-origin', // include, *same-origin, omit
+          headers: { 'Content-Type': 'application/json' },
+          redirect: 'follow', // manual, *follow, error
+          referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+          body: JSON.stringify(data) // body data type must match "Content-Type" header
+        });
+        return response.json(); // parses JSON response into native JavaScript objects
       }
 
-      noInputWarning.style.display = 'none';
+      function createColumns(result, row) {
+        for (let field in result) {
+          if (!result[field]) {
+            continue;
+          }
+          let col = document.createElement("td");
+          let text = document.createTextNode(result[field])
+          col.appendChild(text)
+          row.appendChild(col)
+        }
+      }
 
-      postData('{{ BASE_URL }}search', {name: nameInput.value})
-        .then(results => {
+      function createRows(results) {
+        const resultsBody = document.getElementById('results')
+        results.forEach(function (result) {
+          let row = document.createElement("tr");
+          createColumns(result, row)
+          resultsBody.appendChild(row)
+        })
+      }
+
+      function removeResults(elementId) {
+        const results = document.getElementById(elementId);
+        while (results.firstChild) {
+          results.removeChild(results.lastChild);
+        }
+      }
+
+      function sanitize(name) {
+        name = name.replace(/[0-9]/g, '')
+        name = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        name = name.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
+        return name.trim()
+      }
+
+      function toggleDisplays(results) {
+        if (results.length === 0) {
+          // Show message for 'No results found', hide result table
+          document.getElementById('not-found').style.display = ''
+          document.getElementById('results-table').style.display = 'none'
+        } else {
+          // Show result table, hide 'No results found' message
+          document.getElementById('not-found').style.display = 'none'
+          document.getElementById('results-table').style.display = ''
+        }
+      }
+
+      function submitName(event) {
+        event.preventDefault();
+
+        let loader = document.getElementById("loader")
+        let button = document.getElementById("search");
+        let notFound = document.getElementById("not-found");
+        let results = document.getElementById("results-table");
+        button.disabled = true;
+        loader.style.display = "block";
+        notFound.style.display = "none";
+        results.style.display = "none";
+
+        const noInputWarning = document.getElementById('no-input-warning');
+        const nameInput = document.getElementById('name');
+
+        let name = sanitize(nameInput.value);  // Get rid of accents, numbers and symbols
+        if (!name) {
+          noInputWarning.style.display = '';
+          return;
+        }
+
+        noInputWarning.style.display = 'none';
+
+        postData('{{ BASE_URL }}search', { name: nameInput.value })
+          .then(results => {
             noInputWarning.style.display = 'none';
             removeResults('results');  // Remove to display a new one
             toggleDisplays(results);
             createRows(results);
+            button.disabled = false;
+            loader.style.display = "none";
           }
-        )
-    }
-    document.getElementById('search').addEventListener('click', submitName)
-    document.getElementById('name-form').addEventListener('submit', submitName)
-  </script>
+          ).catch(reason => {
+            button.disabled = false;
+            loader.style.display = "none";
+          });
+      }
+      document.getElementById('search').addEventListener('click', submitName)
+      document.getElementById('name-form').addEventListener('submit', submitName)
+    </script>
 
-</div>
+  </div>
 </body>
 
 </html>
