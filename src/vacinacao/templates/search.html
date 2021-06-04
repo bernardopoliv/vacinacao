@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <head>
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
@@ -15,19 +16,73 @@
   <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
   <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 
+
+  <style>
+    body {
+      margin: 4em 2em;
+    }
+
+    #main-container {
+      max-width: 600px;
+    }
+
+    .lds-ring {
+      display: inline-block;
+      position: relative;
+      width: 40px;
+      height: 40px;
+    }
+
+    .lds-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border: 8px solid purple;
+      border-radius: 50%;
+      animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: purple transparent transparent transparent;
+    }
+
+    .lds-ring div:nth-child(1) {
+      animation-delay: -0.45s;
+    }
+
+    .lds-ring div:nth-child(2) {
+      animation-delay: -0.3s;
+    }
+
+    .lds-ring div:nth-child(3) {
+      animation-delay: -0.15s;
+    }
+
+    @keyframes lds-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
 </head>
 
 <body>
-<div class="container">
-  <div class="row">
-    <div class="column column-100">
-      <h2>Vacinação COVID - Buscador de Nomes</h2>
-      <h3>Lista Pública de Fortaleza</h3>
-      <p>Fonte: <a target="_blank"
-                   href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
-      </p>
+  <div class="container" id="main-container">
+    <div class="row">
+      <div class="column column-100">
+        <h2>Vacinação COVID - Buscador de Nomes</h2>
+        <h3>Lista Pública de Fortaleza</h3>
+        <p>Fonte: <a target="_blank"
+            href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
+        </p>
+        <p>Este não é um site oficial da prefeitura! Estamos apenas facilitando a pesquisa nas listas públicas para
+          buscarmos nossos nomes e de familiares.</p>
+      </div>
     </div>
-  </div>
 
   <div class="row" id="search-container">
     <div class="column column-100">
@@ -40,14 +95,23 @@
         </fieldset>
       </form>
     </div>
-  </div>
+
+    <div id="loader" style="display: none">
+      <div class="lds-ring">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
 
   <h5 id="not-found" style="display: none">Não foram encontrados resultados.</h5>
 
-  <table id="results-table" style>
+  <table id="results-table">
   </table>
+  </div>
 
-  <script type="text/javascript">
+    <script type="text/javascript">
     async function postData(url = '', data = {}) {
       const response = await fetch(url, {
         method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -119,20 +183,34 @@
     }
     function submitName(event) {
       event.preventDefault();
-      const nameInput = document.getElementById('name');
-      let name = sanitize(nameInput.value);  // Get rid of accents, numbers and symbols
+
+      let loader = document.getElementById("loader")
+      let button = document.getElementById("search");
+      let nameInput = document.getElementById('name');
+      let notFound = document.getElementById("not-found");
+
+      let name = sanitize(nameInput.value);
       if (!isValid(name)) {return}
+
+      button.disabled = true;
+      loader.style.display = "block";
+      notFound.style.display = "none";
+
       postData('{{ BASE_URL }}search', {name: nameInput.value})
         .then(results => {
             createDataTable(results)
+            button.disabled = false;
+            loader.style.display = "none";
           }
-        )
-    }
-    document.getElementById('search').addEventListener('click', submitName)
-    document.getElementById('name-form').addEventListener('submit', submitName)
-  </script>
-
-</div>
+          ).catch(reason => {
+            button.disabled = false;
+            loader.style.display = "none";
+          });
+      }
+      document.getElementById('search').addEventListener('click', submitName)
+      document.getElementById('name-form').addEventListener('submit', submitName)
+    </script>
+  </div>
 </body>
 
 </html>

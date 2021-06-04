@@ -1,3 +1,4 @@
+import os
 import io
 import gzip
 import pytest
@@ -9,6 +10,9 @@ from moto import mock_s3
 from vacinacao.entrypoints import app
 from vacinacao.settings import S3_FILES_BUCKET
 from vacinacao.service_layer.indexer import get_index_filename_for_date
+
+
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 @pytest.fixture
@@ -23,7 +27,9 @@ def client():
             s3_client = boto3.client("s3")
             s3.create_bucket(Bucket=S3_FILES_BUCKET)
 
-            index_fixture = bytes(open("/tests/index_fixture.json").read(), "utf8")
+            index_fixture = bytes(
+                open(PATH + "/../tests/index_fixture.json").read(), "utf8"
+            )
             s3_client.upload_fileobj(
                 io.BytesIO(gzip.compress(index_fixture)),
                 S3_FILES_BUCKET,
