@@ -67,22 +67,26 @@
         transform: rotate(360deg);
       }
     }
+
+    .dataTable-wrapper.no-footer .dataTable-container {
+      border-bottom: unset;
+    }
   </style>
 </head>
 
 <body>
-  <div class="container" id="main-container">
-    <div class="row">
-      <div class="column column-100">
-        <h2>Vacinação COVID - Buscador de Nomes</h2>
-        <h3>Lista Pública de Fortaleza</h3>
-        <p>Fonte: <a target="_blank"
-            href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
-        </p>
-        <p>Este não é um site oficial da prefeitura! Estamos apenas facilitando a pesquisa nas listas públicas para
-          buscarmos nossos nomes e de familiares.</p>
-      </div>
+<div class="container" id="main-container">
+  <div class="row">
+    <div class="column column-100">
+      <h2>Vacinação COVID - Buscador de Nomes</h2>
+      <h3>Lista Pública de Fortaleza</h3>
+      <p>Fonte: <a target="_blank"
+                   href="https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html">https://coronavirus.fortaleza.ce.gov.br/lista-vacinacao-d1.html</a>
+      </p>
+      <p>Este não é um site oficial da prefeitura! Estamos apenas facilitando a pesquisa nas listas públicas para
+        buscarmos nossos nomes e de familiares.</p>
     </div>
+  </div>
 
   <div class="row" id="search-container">
     <div class="column column-100">
@@ -90,7 +94,7 @@
         <fieldset>
           <label for="name">Nome para buscar</label>
           <input type="text" placeholder="Ex: Antônio da Silva" name="name" id="name">
-          <h6 style="color: red; display: none" id="input-warning"></h6>
+          <h6 style="color: red; display: none" id="warning"></h6>
           <input class="button-primary" type="button" id="search" value="Buscar">
         </fieldset>
       </form>
@@ -104,113 +108,127 @@
         <div></div>
       </div>
     </div>
-
-  <h5 id="not-found" style="display: none">Não foram encontrados resultados.</h5>
+  </div>
 
   <table id="results-table">
   </table>
-  </div>
 
-    <script type="text/javascript">
-    async function postData(url = '', data = {}) {
-      const response = await fetch(url, {
-        method: 'POST', // *GET, POST, PUT, DELETE, etc.
-        mode: 'cors', // no-cors, *cors, same-origin
-        credentials: 'same-origin', // include, *same-origin, omit
-        headers: {'Content-Type': 'application/json'},
-        redirect: 'follow', // manual, *follow, error
-        referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        body: JSON.stringify(data) // body data type must match "Content-Type" header
-      });
-      return response.json(); // parses JSON response into native JavaScript objects
-    }
+</div>
 
-    function sanitize(name) {
-      name = name.replace(/[0-9]/g, '')
-      name = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      name = name.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
-      return name.trim()
-    }
+<script type="text/javascript">
+  let table = null
 
-    function changeDataStructure(response) {
-      let results = []
-      response.forEach(function (result) {
-        results.push(Object.values(result))
-      })
-      return results
-    }
+  async function postData(url = '', data = {}) {
+    const response = await fetch(url, {
+      method: 'POST', // *GET, POST, PUT, DELETE, etc.
+      mode: 'cors', // no-cors, *cors, same-origin
+      credentials: 'same-origin', // include, *same-origin, omit
+      headers: {'Content-Type': 'application/json'},
+      redirect: 'follow', // manual, *follow, error
+      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: JSON.stringify(data) // body data type must match "Content-Type" header
+    });
+    return response.json(); // parses JSON response into native JavaScript objects
+  }
 
-    function createDataTable(results) {
-      new simpleDatatables.DataTable("#results-table", {
-        searchable: false,
-        fixedHeight: true,
-        paging: false,
-        footer: false,
-        sortable: false,
-        columns: [
-          {
-            select: 1,
-            render: function (data, cell, row) {
-              // Add hyperlink to the URL cell
-              return data.replace(
-                data, `<a href=${data} target="_blank">${data}</a>`
-              );
-            }
+  function sanitize(name) {
+    name = name.replace(/[0-9]/g, '');
+    name = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    name = name.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+    return name.trim()
+  }
+
+  function changeDataStructure(response) {
+    let results = []
+    response.forEach(function (result) {
+      results.push(Object.values(result));
+    })
+    return results;
+  }
+
+  function createDataTable(results) {
+    return new simpleDatatables.DataTable("#results-table", {
+      searchable: false,
+      fixedHeight: true,
+      paging: false,
+      footer: false,
+      sortable: false,
+      columns: [
+        {
+          // Show name in upper case
+          select: 0,
+          render: function (data, cell, row) {
+            return data.toUpperCase()
           }
-        ],
-        data: {
-          "headings": ["Nome", "URL", "Data"],
-          'data': changeDataStructure(results)
         },
-        labels: {
-          noRows: "A busca não retornou resultados.",
-        },
-      })
-    }
-
-    function isValid(name) {
-      const inputWarning = document.getElementById('input-warning')
-      if (!name) {
-        inputWarning.style.display = '';
-        inputWarning.textContent = 'Você precisa digitar um nome para buscar.';
-      } else if (name.split(' ').length <= 1) {
-        inputWarning.style.display = '';
-        inputWarning.textContent = 'Digite o nome completo para buscar.';
-      } else {
-        inputWarning.style.display = 'none'
-        return true
-      }
-    }
-    function submitName(event) {
-      event.preventDefault();
-
-      let loader = document.getElementById("loader")
-      let button = document.getElementById("search");
-      let nameInput = document.getElementById('name');
-      let notFound = document.getElementById("not-found");
-
-      let name = sanitize(nameInput.value);
-      if (!isValid(name)) {return}
-
-      button.disabled = true;
-      loader.style.display = "block";
-      notFound.style.display = "none";
-
-      postData('{{ BASE_URL }}search', {name: nameInput.value})
-        .then(results => {
-            createDataTable(results)
-            button.disabled = false;
-            loader.style.display = "none";
+        {
+          // Add hyperlink to the URL cell
+          select: 1,
+          render: function (data, cell, row) {
+            return data.replace(
+              data, `<a href=${data} target="_blank">${data}</a>`
+            );
           }
-          ).catch(reason => {
-            button.disabled = false;
-            loader.style.display = "none";
-          });
+        }
+      ],
+      data: {
+        "headings": ["Nome", "URL"],
+        'data': changeDataStructure(results)
+      },
+      labels: {
+        noRows: "A busca não retornou resultados.",
+      },
+    })
+  }
+
+  function isValid(name) {
+    const warning = document.getElementById('warning')
+    if (!name) {
+      warning.style.display = '';
+      warning.textContent = 'Você precisa digitar um nome para buscar.';
+    } else if (name.split(' ').length <= 1) {
+      warning.style.display = '';
+      warning.textContent = 'Digite o nome completo para buscar.';
+    } else {
+      warning.style.display = 'none';
+      return true;
+    }
+  }
+
+  function submitName(event) {
+    event.preventDefault();
+
+    let loader = document.getElementById("loader");
+    let button = document.getElementById("search");
+    let nameInput = document.getElementById("name");
+
+    let name = sanitize(nameInput.value);
+    if (!isValid(name)) {
+      return;
+    }
+
+    button.disabled = true;
+    loader.style.display = "block";
+
+    postData('{{ BASE_URL }}search', {name: nameInput.value})
+      .then(results => {
+        if (!!table) {
+          table.destroy();
+        }
+        table = createDataTable(results);
+
+        button.disabled = false;
+        loader.style.display = "none";
       }
-      document.getElementById('search').addEventListener('click', submitName)
-      document.getElementById('name-form').addEventListener('submit', submitName)
-    </script>
-  </div>
+      ).catch(reason => {
+        button.disabled = false;
+        loader.style.display = "none";
+    });
+  }
+
+  document.getElementById('search').addEventListener('click', submitName)
+  document.getElementById('name-form').addEventListener('submit', submitName)
+</script>
 </body>
 
 </html>
