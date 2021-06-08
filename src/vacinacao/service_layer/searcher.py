@@ -25,9 +25,7 @@ def search_name(searched_name):
             continue
         found = match_text(str(file_meta["content"]), searched_name)
         if found:
-            found_list.append(
-                {"names": found, "url": file_meta["url"], "date": file_meta.get("date")}
-            )
+            found_list.append({"names": found, "url": file_meta["url"]})
         logger.info(f'{content_hash}: {found if found else "No results in this file."}')
 
     return found_list

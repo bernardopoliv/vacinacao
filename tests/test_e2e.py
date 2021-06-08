@@ -51,7 +51,6 @@ def test_searching_a_name(client, snapshot):
 
     # The results contain the expected entry.
     expected_fragment = {
-        "date": None,
         "names": "Jose",
         "url": "https://site-da-prefeitura.com/abc.pdf",
     }
