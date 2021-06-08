@@ -15,7 +15,7 @@ def match_text(result_text, searched_name=None):
 def search_name(searched_name):
     logger.info("Started `read` method.")
 
-    index = indexer.pull_index()
+    index = indexer.get_current_index()
     logger.info("Got index into memory.")
 
     found_list = []
