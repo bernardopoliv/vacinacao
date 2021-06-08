@@ -15,7 +15,11 @@ Resources:
       Timeout: 10
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.1
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.5
+      Environment:
+        Variables:
+          VACINACAO_URL: https://meunomesaiunalista.com.br/
+          STAGE: prod
       Events:
         GetSearch:
           Type: Api
@@ -34,10 +38,10 @@ Resources:
   VacinacaoFunctionIndexer:
     Type: AWS::Serverless::Function
     Properties:
-      Timeout: 120
+      Timeout: 900
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.1
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.5
       ImageConfig:
         Command:
           - "handler.reindex_handler"
