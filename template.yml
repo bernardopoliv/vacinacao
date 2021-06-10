@@ -15,7 +15,7 @@ Resources:
       Timeout: 10
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.6
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.8
       Environment:
         Variables:
           VACINACAO_URL: https://meunomesaiunalista.com.br/
@@ -41,7 +41,7 @@ Resources:
       Timeout: 900
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.6
+      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.14.8
       ImageConfig:
         Command:
           - "handler.reindex_handler"

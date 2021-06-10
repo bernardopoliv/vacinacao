@@ -8,6 +8,7 @@ from typing import List
 
 import requests
 from pdfminer.high_level import extract_text
+from pdfminer.pdfparser import PDFSyntaxError
 
 from vacinacao.log_utils import setup_logging
 from vacinacao.service_layer import s3, navigation
@@ -109,12 +110,6 @@ def get_index_filename_for_date(index_date: date):
     return f"temp_index_{index_date.isoformat()}.json.gzip"
 
 
-def extract_result(pdf_file_key: dict, pdf_content: bytes) -> str:
-    logger.info(f"Starting text extraction on '{pdf_file_key}'...")
-    text_result = extract_text(io.BytesIO(pdf_content))
-    return text_result.lower()
-
-
 def upload_result(results_filename: str, results: str) -> None:
     logger.info(f"Uploading results file {results_filename}...")
 
@@ -125,6 +120,20 @@ def upload_result(results_filename: str, results: str) -> None:
     s3.upload(results_filename)
 
 
+def extract_result(file_meta, pdf_content) -> str:
+    pdf_filename = file_meta["pdf_file_key"]
+    logger.info(f"Starting text extraction on '{pdf_filename}'...")
+
+    try:
+        return extract_text(io.BytesIO(pdf_content)).lower()
+    except PDFSyntaxError:
+        logger.warning(
+            "PDF content is not valid. This file will be ignored.",
+            extra={"url": file_meta["url"], "s3_key": pdf_filename},
+        )
+        return ""
+
+
 def generate_and_upload_results():
     index = get_current_index()
     for content_hash, file_meta in index.items():
@@ -132,15 +141,14 @@ def generate_and_upload_results():
             continue
         pdf_filename = file_meta["pdf_file_key"]
         logger.info(f"Generating results for {pdf_filename}")
+
         pdf_content = s3.pull(pdf_filename)
-        result: str = extract_result(pdf_filename, pdf_content)
+        result = extract_result(file_meta, pdf_content)
+
         results_file_key = f"{content_hash}_results.txt"
         upload_result(results_file_key, result)
         index[content_hash].update(
-            {
-                "content": result,
-                "results_file_key": results_file_key,
-            }
+            {"content": result, "results_file_key": results_file_key}
         )
     dump_and_upload_index(index)
 
