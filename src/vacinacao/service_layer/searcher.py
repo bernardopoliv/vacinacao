@@ -15,7 +15,7 @@ def match_text(result_text, searched_name=None):
 def search_name(searched_name):
     logger.info("Started `read` method.")
 
-    index = indexer.get_current_index()
+    index = indexer.get_most_recent_index()
     logger.info("Got index into memory.")
 
     found_list = []
@@ -26,6 +26,8 @@ def search_name(searched_name):
         found = match_text(str(file_meta["content"]), searched_name)
         if found:
             found_list.append({"names": found, "url": file_meta["url"]})
-        logger.info(f'{content_hash}: {found if found else "No results in this file."}')
+        logger.debug(
+            f'{content_hash}: {found if found else "No results in this file."}'
+        )
 
     return found_list

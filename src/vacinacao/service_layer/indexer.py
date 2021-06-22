@@ -1,3 +1,4 @@
+import os
 import io
 import json
 import gzip
@@ -12,7 +13,8 @@ from pdfminer.pdfparser import PDFSyntaxError
 
 from vacinacao.log_utils import setup_logging
 from vacinacao.service_layer import s3, navigation
-from vacinacao.service_layer.utils import hash_content
+from vacinacao.service_layer.utils import hash_content, SingletonMeta
+
 
 logger = setup_logging(__name__)
 
@@ -39,7 +41,7 @@ def is_url_in_index(url, index):
 
 
 def download_from_prefeitura(to_download: List[str]):
-    index = get_current_index()
+    index = get_most_recent_index()
     new_entries: dict = asyncio.run(_download(to_download))
 
     for content_hash, file_meta in new_entries.items():
@@ -91,19 +93,113 @@ def dump_and_upload_index(new_index: dict) -> None:
     logger.info(f"Successfully wrote index file '{index_filename}'.")
 
 
+class AbstractIndex:
+    # TODO: make this inherit from abc.ABC? Need to resolve metaclass conflict on InMemoryIndex.
+
+    index: dict
+
+    def __init__(self, for_date: date):
+        self.for_date = for_date
+
+    def is_available(self):
+        return self._is_available()
+
+    def pull(self):
+        return self._pull()
+
+    def push(self, index):
+        return self._push(index)
+
+    def _is_available(self):
+        raise NotImplementedError
+
+    def _pull(self):
+        raise NotImplementedError
+
+    def _push(self):
+        raise NotImplementedError
+
+
+class InMemoryIndex(AbstractIndex, metaclass=SingletonMeta):
+    _indexes: dict = {}  # can hold multiple index, by date as key
+
+    def _is_available(self):
+        return bool(self.for_date in self._indexes)
+
+    def _pull(self):
+        return self._indexes[self.for_date]
+
+    def _push(self, index):
+        self._indexes[self.for_date] = index
+
+
+class LocalFileIndex(AbstractIndex):
+    def _pull(self):
+        if not self.is_available():
+            raise IndexUnavailable
+        index = open(self.__get_filename()).read()
+        return json.loads(index)
+
+    def __get_filename(self):
+        return "/tmp/" + get_index_filename_for_date(self.for_date)
+
+    def _is_available(self):
+        return os.path.isfile(self.__get_filename())
+
+    def _push(self, index):
+        with open(self.__get_filename(), "w") as file:
+            file.write(json.dumps(index))
+
+
+class S3FileIndex(AbstractIndex):
+    def _is_available(self):
+        return s3.file_exists(get_index_filename_for_date(self.for_date))
+
+    def _pull(self):
+        gzip_content = s3.pull(get_index_filename_for_date(self.for_date))
+        index_json = gzip.decompress(gzip_content).decode()
+        return json.loads(index_json)
+
+
 def pull_index(index_date=None) -> dict:
+    """
+    Orchestrates the search among the different index strategies (in-memory, local file, S3).
+    Fill up the missed indexes to improve performance of the next searches.
+    """
     if index_date is None:
         index_date = date.today()
-    index_filename = get_index_filename_for_date(index_date)
 
-    logger.info(f"Looking for index '{index_filename}'.")
-    if s3.file_exists(index_filename):
-        index_json = gzip.decompress(s3.pull(index_filename)).decode()
-        index = json.loads(index_json)
+    # This should be in order of performance (best comes first)
+    index_types = [
+        InMemoryIndex,
+        LocalFileIndex,
+        S3FileIndex,
+    ]
+
+    logger.info(f"Looking for index for date '{index_date}'.")
+    index = None
+    missed_indexes = []
+    for index_type in index_types:
+        logger.info(f"Looking in index type '{index_type}'")
+        this_index = index_type(index_date)
+
+        if not this_index.is_available():
+            missed_indexes.append(this_index)
+            continue
+
+        logger.info(f"Found index in type '{index_type}'")
+        index = this_index.pull()
         logger.info(f"Index contains '{len(index)}' files.")
-        return index
-    else:
-        raise IndexUnavailable()
+        break
+
+    if index is None:
+        raise IndexUnavailable
+
+    for missed_index in missed_indexes:
+        logger.info(f"Pushing towards index '{missed_index}'.")
+        missed_index.push(index)
+
+    return index
 
 
 def get_index_filename_for_date(index_date: date):
@@ -135,7 +231,7 @@ def extract_result(file_meta, pdf_content) -> str:
 
 
 def generate_and_upload_results():
-    index = get_current_index()
+    index = get_most_recent_index()
     for content_hash, file_meta in index.items():
         if file_meta.get("content") and file_meta.get("results_file_key"):
             continue
@@ -153,20 +249,21 @@ def generate_and_upload_results():
     dump_and_upload_index(index)
 
 
-def get_current_index() -> dict:
-    try:
-        current_index = pull_index()
-    except IndexUnavailable:
-        logger.info("Unable to get today's index")
-        yesterday = date.today() - timedelta(days=1)
-        current_index = pull_index(yesterday)
-
-    return current_index
+def get_most_recent_index() -> dict:
+    index = None
+    index_date = date.today()
+    while index is None:
+        try:
+            index = pull_index(index_date)
+        except IndexUnavailable:
+            logger.info(f"Unable to get index for date '{index_date}'.")
+            index_date -= timedelta(days=1)
+    return index
 
 
 def download_and_reindex():
     logger.info("Starting reindex...")
-    current_index: dict = get_current_index()
+    current_index: dict = get_most_recent_index()
     urls = navigation.get_file_urls()
 
     to_download = [url for url in urls if not is_url_in_index(url, current_index)]
