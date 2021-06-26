@@ -20,6 +20,6 @@ def __urls_from_response(tree):
         for subelement in element:
             txt = subelement.text
             if txt and "pdf" in txt and txt.startswith("https:"):
-                urls.append({"url": subelement.text, "date": "dummy"})
+                urls.append({"url": subelement.text.strip(), "date": "dummy"})
     logger.info("Created list of file URLs to return.")
     return urls
