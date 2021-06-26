@@ -17,6 +17,19 @@
   <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
   <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CJXMZMJFQ1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-CJXMZMJFQ1');
+  </script>
 
   <style>
     body {
@@ -211,7 +224,7 @@
     button.disabled = true;
     loader.style.display = "block";
 
-    postData('{{ BASE_URL }}search', {name: nameInput.value})
+    postData('{{ BASE_URL }}search', {name: name})
       .then(results => {
         if (!!table) {
           table.destroy();
