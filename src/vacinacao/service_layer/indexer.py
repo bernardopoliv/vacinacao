@@ -116,7 +116,7 @@ class AbstractIndex:
     def _pull(self):
         raise NotImplementedError
 
-    def _push(self):
+    def _push(self, index):
         raise NotImplementedError
 
 
