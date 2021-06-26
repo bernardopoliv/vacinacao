@@ -1,6 +1,8 @@
 import hashlib
 from threading import Lock
 
+import unidecode as unidecode
+
 
 def hash_content(file_content: bytes):
     return hashlib.md5(file_content).hexdigest()
@@ -40,3 +42,15 @@ class SingletonMeta(type):
                 instance = super().__call__(*args, **kwargs)
                 cls._instances[cls] = instance
         return cls._instances[cls]
+
+
+def sanitize(searched_name: str) -> str:
+    sanitized_name = unidecode.unidecode(searched_name, "utf-8")
+    sanitized_name = "".join(
+        # As we're going to search for the name input as is
+        # We're also going to try to find it removing all special chars
+        char
+        for char in sanitized_name
+        if (char.isalpha() or char == " ")
+    )
+    return sanitized_name.strip()

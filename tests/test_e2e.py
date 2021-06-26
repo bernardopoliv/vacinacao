@@ -39,19 +39,22 @@ def client():
 
 
 @pytest.mark.e2e
-def test_searching_a_name(client, snapshot):
+@pytest.mark.parametrize("searched_name", ["Jose", "José"])
+def test_searching_a_name(searched_name, client, snapshot):
     # A guest can open the page
     response = client.get("/")
     snapshot.assert_match(response.data, "main_page.html")
 
     # Searches a name
     response = client.post(
-        "/search", json={"name": "Jose"}, headers={"Content-Type": "application/json"}
+        "/search",
+        json={"name": searched_name},
+        headers={"Content-Type": "application/json"},
     )
 
     # The results contain the expected entry.
     expected_fragment = {
-        "names": "Jose",
+        "names": searched_name,
         "url": "https://site-da-prefeitura.com/abc.pdf",
     }
     assert expected_fragment in response.json
