@@ -43,3 +43,4 @@ toml==0.10.2
 urllib3==1.26.4
 Werkzeug==2.0.1
 moto  # TODO
+unidecode==1.2.0

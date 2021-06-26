@@ -1,6 +1,5 @@
 import os
 
-NAME_LOOKUPS = ["FULANO DA SILVA"]
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 VAC_PUBLIC_LIST_URL = "https://spreadsheets.google.com/feeds/list/1IJBDu8dRGLkBgX72sRWKY6R9GfefsaDCXBd3Dz9PZNs/14/public/values"  # noqa

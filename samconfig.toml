@@ -1,7 +1,7 @@
 version = 0.1
-[default]
-[default.deploy]
-[default.deploy.parameters]
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
 stack_name = "vacinacao-app"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-16fp4jr52e8qh"
 s3_prefix = "vacinacao-app"
