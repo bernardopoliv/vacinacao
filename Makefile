@@ -1,16 +1,26 @@
+check-version:
+# Checks if VERSION is a defined variable.
+# Must not be indented!
+ifndef VERSION
+	$(error VERSION is undefined.)
+endif
+
 up:
 	docker-compose up -d --build
 
-build-and-push: ecr-login
+build-and-push: check-version ecr-login
 	docker-compose build
-	docker tag vacinacao-img:latest 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1
-	docker push 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1
+	docker tag vacinacao-img:latest 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION}
+	docker push 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION}
 
 ecr-login:
 	aws ecr get-login --no-include-email | sh
 
-deploy:
-	sam deploy --no-confirm-changeset --image-repositories VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1 --image-repositories VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1
+deploy-beta: check-version
+	sam deploy --no-confirm-changeset --image-repositories VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION} --image-repositories VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION} --config-env beta --parameter-overrides STAGE=beta URL="https://beta.meunomesaiunalista.com.br/" IMAGEURI="244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION}"
+
+deploy-prod: check-version
+	sam deploy --no-confirm-changeset --image-repositories VacinacaoFunction=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION} --image-repositories VacinacaoFunctionIndexer=244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION} --config-env prod --parameter-overrides STAGE=prod URL="https://meunomesaiunalista.com.br/" IMAGEURI="244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:${VERSION}"
 
 webapp:
 	python src/vacinacao/entrypoints.py
