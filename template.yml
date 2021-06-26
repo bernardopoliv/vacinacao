@@ -7,33 +7,58 @@ Globals:
     # Your CORS hosts need to be in this format - note the two layers of quotes.
     Cors: "'*'"
 
+Parameters:
+    STAGE:
+        Description: 'Required. Stage being deployed.'
+        Type: String
+        Default: beta
+    URL:
+        Description: 'Required. User-friendly URL for the stage.'
+        Type: String
+        Default: https://meunomesaiunalista.com.br/
+    IMAGEURI:
+        Description: 'Required. ECR URI for deployment.'
+        Type: String
+        Default: "244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1"
+
 Resources:
+  VacinacaoFunctionApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref STAGE
+
   VacinacaoFunction:
     Type: AWS::Serverless::Function
     Properties:
       Timeout: 10
       MemorySize: 1024
       PackageType: Image
-      ImageUri: 244978745220.dkr.ecr.us-east-1.amazonaws.com/vacinacao-app:0.16.1
+      ImageUri: !Ref IMAGEURI
+      Role: arn:aws:iam::244978745220:role/vacinacao-app-VacinacaoFunctionRole-QWM4AIGVKOM2
       Environment:
         Variables:
-          VACINACAO_URL: https://meunomesaiunalista.com.br/
-          STAGE: prod
+          VACINACAO_URL: !Ref URL
+          STAGE: !Ref STAGE
       Events:
         GetSearch:
           Type: Api
           Properties:
             Path: /
             Method: get
+            RestApiId:
+              Ref: VacinacaoFunctionApi
         PostSearch:
           Type: Api
           Properties:
             Path: /search
             Method: post
+            RestApiId:
+              Ref: VacinacaoFunctionApi
     Metadata:
       DockerTag: vacinacaofunction:vacinacao-img
       DockerContext: ./webapp
       Dockerfile: Dockerfile
+
   VacinacaoFunctionIndexer:
     Type: AWS::Serverless::Function
     Properties:
@@ -56,6 +81,9 @@ Resources:
       Dockerfile: Dockerfile
 
 Outputs:
-  VacinacaoFunction:
-    Description: "API Gateway endpoint URL for Prod stage"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  ApiURL:
+    Description: "API Gateway endpoint URL for this stage"
+    Value: !Sub "https://${VacinacaoFunctionApi}.execute-api.${AWS::Region}.amazonaws.com/${STAGE}/"
+  FriendlyURL:
+    Description: "User-friendly URL informed via parameter."
+    Value: !Ref URL
