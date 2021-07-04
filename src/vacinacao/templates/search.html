@@ -134,6 +134,25 @@
   <hr/>
 
   <div class="row">
+    <div class="column column-100">
+      <div id="subscribe"  style="display: none;">
+        <button id="requestData">Notificar-me</button>
+        <form style="display: none;" action="{{ BASE_URL }}subscribe" id="subscribe-form" method="post" onsubmit="submitSubscription">
+          <fieldset>
+            <label for="name">Email para receber notificações</label>
+            <input required type="email" placeholder="antonio.dasilva@gmail.com" name="email" id="email">
+            <h6 style="color: red; display: none" id="warning"></h6>
+            <input class="button-primary" type="button" id="subscribe-button" value="Receber notificações">
+            <h6 style="color: green; display: none" id="success-message"></h6>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <hr/>
+
+  <div class="row">
     <div class="column">
       <small>
         Este site usa cookies para melhor disponibilizar o serviço.
@@ -147,12 +166,10 @@
     </div>
   </div>
 
-
-
 </div>
 
 <script type="text/javascript">
-  let table = null
+  let table = null;
 
   async function postData(url = '', data = {}) {
     const response = await fetch(url, {
@@ -237,6 +254,7 @@
 
     button.disabled = true;
     loader.style.display = "block";
+    resetSubscribeSection();
 
     postData('{{ BASE_URL }}search', {name: name})
       .then(results => {
@@ -247,15 +265,70 @@
 
         button.disabled = false;
         loader.style.display = "none";
+        subscribeSection.style.display = "block";
       }
       ).catch(reason => {
         button.disabled = false;
         loader.style.display = "none";
-    });
+        subscribeSection.style.display = "block";
+      });
   }
 
-  document.getElementById('search').addEventListener('click', submitName)
-  document.getElementById('name-form').addEventListener('submit', submitName)
+  const requestDataButton = document.getElementById('requestData');
+  const subscribeSection = document.getElementById("subscribe");
+  const subscribeForm = document.getElementById('subscribe-form');
+  const subscribeButton = document.getElementById("subscribe-button");
+  const emailField = document.getElementById("email")
+  const successMessage = document.getElementById("success-message");
+
+  function requestContactData(event) {
+    event.preventDefault();
+    requestDataButton.style.display = "none";
+    subscribeForm.style.display = "block";
+  }
+
+  function submitSubscription(event) {
+    event.preventDefault();
+    requestDataButton.disabled = true;
+
+    const name = document.getElementById("name").value;
+    const email = emailField.value;
+
+    subscribeButton.disabled = true;
+    emailField.disabled = true;
+
+    postData('{{ BASE_URL }}subscribe', {name, email})
+      .then(response => {
+        if (response.ok) {
+          successMessage.textContent = "Cadastro feito!";
+          successMessage.style.display = "block";
+        }
+      }).catch(reason => {
+        console.error(reason);
+      });
+  };
+
+  function resetSubscribeSection() {
+    requestDataButton.disabled = false;
+    requestDataButton.style.display = "block";
+
+    subscribeSection.style.display = "none";
+    subscribeButton.disabled = false;
+    subscribeForm.style.display = "none";
+
+    emailField.value = "";
+    emailField.disabled = false;
+
+    successMessage.textContent = "";
+    successMessage.style.display = "none";
+  };
+
+
+  document.getElementById('search').addEventListener('click', submitName);
+  document.getElementById('name-form').addEventListener('submit', submitName);
+  requestDataButton.addEventListener('click', requestContactData);
+  subscribeButton.addEventListener('click', submitSubscription);
+  subscribeForm.addEventListener('submit', submitSubscription);
 </script>
 </body>
 

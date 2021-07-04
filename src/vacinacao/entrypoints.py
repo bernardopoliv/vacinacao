@@ -21,8 +21,16 @@ def home():
 @app.route("/search", methods=["POST"])
 def search():
     found = search_name(json.loads(request.data)["name"])
-
     return Response(json.dumps(found), headers={"Content-Type": "application/json"})
+
+
+@app.route("/subscribe", methods=["POST"])
+def subscribe():
+    payload = json.loads(request.data)
+    name = payload["name"]
+    email = payload["email"]
+    print("TODO: use this data", name, email)
+    return Response(json.dumps({"ok": True}), headers={"Content-Type": "application/json"})
 
 
 if __name__ == "__main__":
