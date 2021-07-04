@@ -4,7 +4,7 @@ import json
 import gzip
 import asyncio
 import urllib
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import List
 
 import requests
@@ -244,7 +244,11 @@ def generate_and_upload_results():
         results_file_key = f"{content_hash}_results.txt"
         upload_result(results_file_key, result)
         index[content_hash].update(
-            {"content": result, "results_file_key": results_file_key}
+            {
+                "content": result,
+                "results_file_key": results_file_key,
+                "created_dt": datetime.now().isoformat(),
+            }
         )
     dump_and_upload_index(index)
 
