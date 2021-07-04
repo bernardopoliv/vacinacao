@@ -8,5 +8,6 @@ BASE_URL = os.getenv("VACINACAO_URL", "http://localhost:5000/")
 
 # Cloud settings
 S3_FILES_BUCKET = "vacinacao-covid-ceara-3"
+DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "Subscriptions")
 
 PULL_RESULTS_ASYNC = False

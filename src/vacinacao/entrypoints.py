@@ -3,6 +3,7 @@ import json
 from flask import request, Response
 from flask_lambda import FlaskLambda
 
+from vacinacao.service_layer import dynamodb
 from vacinacao.service_layer.searcher import search_name
 from vacinacao import settings
 from flask_cors import CORS
@@ -27,9 +28,7 @@ def search():
 @app.route("/subscribe", methods=["POST"])
 def subscribe():
     payload = json.loads(request.data)
-    name = payload["name"]
-    email = payload["email"]
-    print("TODO: use this data", name, email)
+    dynamodb.add_subscription(payload["name"], payload["email"])
     return Response(json.dumps({"ok": True}), headers={"Content-Type": "application/json"})
 
 
