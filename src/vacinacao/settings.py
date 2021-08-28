@@ -2,7 +2,7 @@ import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-VAC_PUBLIC_LIST_URL = "https://spreadsheets.google.com/feeds/list/1IJBDu8dRGLkBgX72sRWKY6R9GfefsaDCXBd3Dz9PZNs/14/public/values"  # noqa
+VAC_PUBLIC_LIST_URL = "https://docs.google.com/spreadsheets/d/1IJBDu8dRGLkBgX72sRWKY6R9GfefsaDCXBd3Dz9PZNs/gviz/tq?gid=970021343&tq=SELECT%20%2A"  # noqa
 
 BASE_URL = os.getenv("VACINACAO_URL", "http://localhost:5000/")
 
