@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<title>Vacinação COVID Fortaleza - Buscador de Nomes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+
+  <!-- CSS Reset -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+
+  <!-- Milligram CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CJXMZMJFQ1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-CJXMZMJFQ1');
+  </script>
+
+  <style>
+    body {
+      margin: 4em 2em;
+    }
+
+    #main-container {
+      max-width: 600px;
+    }
+
+    .lds-ring {
+      display: inline-block;
+      position: relative;
+      width: 40px;
+      height: 40px;
+    }
+
+    .lds-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border: 8px solid purple;
+      border-radius: 50%;
+      animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: purple transparent transparent transparent;
+    }
+
+    .lds-ring div:nth-child(1) {
+      animation-delay: -0.45s;
+    }
+
+    .lds-ring div:nth-child(2) {
+      animation-delay: -0.3s;
+    }
+
+    .lds-ring div:nth-child(3) {
+      animation-delay: -0.15s;
+    }
+
+    @keyframes lds-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .dataTable-wrapper.no-footer .dataTable-container {
+      border-bottom: unset;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container" id="main-container">
+  <div class="row">
+    <div class="column column-100">
+      <h3>Vacinação COVID - Buscador de Nomes</h3>
+      <h4>Projeto Desativado</h4>
+      <p>
+        Este projeto não está mais sendo mantido.<br/>
+        Esperamos ter ajudado. Utilize os serviços oficiais da prefeitura para buscar seu nome.
+        <br/>
+      </p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row">
+    <div class="column">
+      <small>
+        Este site usa cookies para melhor disponibilizar o serviço.
+        <br>
+        As informações disponibilizadas são <a href="https://dados.gov.br/pagina/dados-abertos">dados abertos</a>
+        por estarem disponíveis em listas públicas da prefeitura
+        e por isso não são sujeitas a remoção ou de qualquer responsabilidade deste site.
+        <br/>
+        Código fonte: <a href="https://github.com/bernardopoliv/vacinacao/">Ver no GitHub</a>
+      </small>
+    </div>
+  </div>
+</div>
+</body>
+
+</html>

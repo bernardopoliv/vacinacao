@@ -13,7 +13,7 @@ CORS(app)
 
 @app.route("/", methods=["GET"])
 def home():
-    html_template = open(f"{settings.ROOT_DIR}/templates/search.html").read()
+    html_template = open(f"{settings.ROOT_DIR}/templates/offline.html").read()
     html_content = html_template.replace(r"{{ BASE_URL }}", settings.BASE_URL)
     return html_content, 200
 
